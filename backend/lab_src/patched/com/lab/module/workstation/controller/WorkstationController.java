@@ -39,7 +39,9 @@ import com.lab.common.exception.BizException;
 import com.lab.module.rbac.entity.CoreUser;
 import com.lab.module.rbac.repository.CoreUserRepository;
 import com.lab.module.workstation.entity.Workstation;
+import com.lab.module.workstation.entity.WorkstationRentalRequestItem;
 import com.lab.module.workstation.repository.WorkstationRepository;
+import com.lab.module.workstation.repository.WorkstationRentalRequestItemRepository;
 import com.lab.module.workstation.dto.MentorGroupStudentUsageVo;
 import com.lab.module.workstation.dto.MentorGroupUpdateRequest;
 import com.lab.module.workstation.dto.OccupancyHistoryVo;
@@ -55,6 +57,7 @@ import com.lab.module.workstation.service.WorkstationMentorService;
 import com.lab.module.workstation.service.WorkstationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.YearMonth;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -76,6 +79,7 @@ public class WorkstationController {
     private final WorkstationMentorService workstationMentorService;
     private final WorkstationRepository workstationRepository;
     private final CoreUserRepository coreUserRepository;
+    private final WorkstationRentalRequestItemRepository rentalItemRepository;
 
     @GetMapping
     @PreAuthorize(value="@perm.has('workstation:view')")
@@ -183,6 +187,37 @@ public class WorkstationController {
         return Result.ok();
     }
 
+    @PutMapping(value={"/{nanoId}/reserved-end-month"})
+    @PreAuthorize(value="@perm.has('workstation:manage')")
+    @AuditLog(module="workstation", action="updateReservedEndMonth", description="\u4fee\u6539\u5de5\u4f4d\u9884\u8ba1\u91ca\u653e\u6708\u4efd")
+    public Result<Void> updateReservedEndMonth(@PathVariable("nanoId") String nanoId, @RequestParam("month") String month) {
+        Workstation ws = this.workstationRepository.findByNanoId(nanoId);
+        if (ws == null) {
+            throw new BizException(ResultCode.RESOURCE_NOT_FOUND);
+        }
+        if (month == null || !month.matches("\\d{4}-\\d{2}")) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u6708\u4efd\u683c\u5f0f\u5e94\u4e3a YYYY-MM");
+        }
+        Long rentalId = this.rentalItemRepository.findApprovedRentalRequestIdByWorkstationAndMonth(ws.getId(), YearMonth.now().toString());
+        if (rentalId == null) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u6ca1\u6709\u751f\u6548\u7684\u79df\u8d41\u7533\u8bf7");
+        }
+        List<WorkstationRentalRequestItem> items = this.rentalItemRepository.findByRentalRequestId(rentalId);
+        WorkstationRentalRequestItem target = null;
+        for (WorkstationRentalRequestItem it : items) {
+            if (it.getWorkstationId() != null && it.getWorkstationId().equals(ws.getId())) {
+                target = it;
+                break;
+            }
+        }
+        if (target == null) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u672a\u627e\u5230\u5bf9\u5e94\u7684\u79df\u8d41\u660e\u7ec6");
+        }
+        target.setEndMonth(month.trim());
+        this.rentalItemRepository.save(target);
+        return Result.ok();
+    }
+
     @GetMapping(value={"/mentor-group-student-usage"})
     @PreAuthorize(value="@perm.has('workstation:usage:view')")
     public Result<MentorGroupStudentUsageVo> mentorGroupStudentUsage(@RequestParam("mentorGroupNanoId") String mentorGroupNanoId, @RequestParam("startMonth") String startMonth, @RequestParam("endMonth") String endMonth) {
@@ -195,12 +230,13 @@ public class WorkstationController {
         return Result.ok(this.workstationService.occupancyHistory(nanoId));
     }
 
-        public WorkstationController(WorkstationService workstationService, WorkstationRentalRequestService rentalRequestService, WorkstationMentorService workstationMentorService, WorkstationRepository workstationRepository, CoreUserRepository coreUserRepository) {
+        public WorkstationController(WorkstationService workstationService, WorkstationRentalRequestService rentalRequestService, WorkstationMentorService workstationMentorService, WorkstationRepository workstationRepository, CoreUserRepository coreUserRepository, WorkstationRentalRequestItemRepository rentalItemRepository) {
         this.workstationService = workstationService;
         this.rentalRequestService = rentalRequestService;
         this.workstationMentorService = workstationMentorService;
         this.workstationRepository = workstationRepository;
         this.coreUserRepository = coreUserRepository;
+        this.rentalItemRepository = rentalItemRepository;
     }
 }
 
