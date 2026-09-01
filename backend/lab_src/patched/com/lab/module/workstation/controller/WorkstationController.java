@@ -33,7 +33,13 @@
 package com.lab.module.workstation.controller;
 
 import com.lab.common.api.Result;
+import com.lab.common.api.ResultCode;
 import com.lab.common.audit.AuditLog;
+import com.lab.common.exception.BizException;
+import com.lab.module.rbac.entity.CoreUser;
+import com.lab.module.rbac.repository.CoreUserRepository;
+import com.lab.module.workstation.entity.Workstation;
+import com.lab.module.workstation.repository.WorkstationRepository;
 import com.lab.module.workstation.dto.MentorGroupStudentUsageVo;
 import com.lab.module.workstation.dto.MentorGroupUpdateRequest;
 import com.lab.module.workstation.dto.OccupancyHistoryVo;
@@ -68,6 +74,8 @@ public class WorkstationController {
     private final WorkstationService workstationService;
     private final WorkstationRentalRequestService rentalRequestService;
     private final WorkstationMentorService workstationMentorService;
+    private final WorkstationRepository workstationRepository;
+    private final CoreUserRepository coreUserRepository;
 
     @GetMapping
     @PreAuthorize(value="@perm.has('workstation:view')")
@@ -155,6 +163,26 @@ public class WorkstationController {
         return Result.ok();
     }
 
+    @PutMapping(value={"/{nanoId}/occupant-name"})
+    @PreAuthorize(value="@perm.has('workstation:manage')")
+    @AuditLog(module="workstation", action="updateOccupantName", description="\u4fee\u6539\u5de5\u4f4d\u5360\u7528\u5b66\u751f\u59d3\u540d")
+    public Result<Void> updateOccupantName(@PathVariable("nanoId") String nanoId, @RequestParam("name") String name) {
+        Workstation ws = this.workstationRepository.findByNanoId(nanoId);
+        if (ws == null) {
+            throw new BizException(ResultCode.RESOURCE_NOT_FOUND);
+        }
+        if (ws.getCurrentUserId() == null) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u6ca1\u6709\u5360\u7528\u5b66\u751f");
+        }
+        if (name == null || name.trim().isEmpty()) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u5b66\u751f\u59d3\u540d\u4e0d\u80fd\u4e3a\u7a7a");
+        }
+        CoreUser user = this.coreUserRepository.findById(ws.getCurrentUserId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5360\u7528\u5b66\u751f\u4e0d\u5b58\u5728"));
+        user.setName(name.trim());
+        this.coreUserRepository.save(user);
+        return Result.ok();
+    }
+
     @GetMapping(value={"/mentor-group-student-usage"})
     @PreAuthorize(value="@perm.has('workstation:usage:view')")
     public Result<MentorGroupStudentUsageVo> mentorGroupStudentUsage(@RequestParam("mentorGroupNanoId") String mentorGroupNanoId, @RequestParam("startMonth") String startMonth, @RequestParam("endMonth") String endMonth) {
@@ -167,10 +195,12 @@ public class WorkstationController {
         return Result.ok(this.workstationService.occupancyHistory(nanoId));
     }
 
-        public WorkstationController(WorkstationService workstationService, WorkstationRentalRequestService rentalRequestService, WorkstationMentorService workstationMentorService) {
+        public WorkstationController(WorkstationService workstationService, WorkstationRentalRequestService rentalRequestService, WorkstationMentorService workstationMentorService, WorkstationRepository workstationRepository, CoreUserRepository coreUserRepository) {
         this.workstationService = workstationService;
         this.rentalRequestService = rentalRequestService;
         this.workstationMentorService = workstationMentorService;
+        this.workstationRepository = workstationRepository;
+        this.coreUserRepository = coreUserRepository;
     }
 }
 
