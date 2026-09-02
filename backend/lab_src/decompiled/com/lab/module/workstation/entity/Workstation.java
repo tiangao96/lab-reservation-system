@@ -1,19 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.lab.common.entity.BaseEntity
- *  com.lab.module.workstation.entity.Workstation
- *  com.lab.module.workstation.entity.WorkstationStatus
- *  com.lab.module.workstation.entity.WorkstationType
- *  jakarta.persistence.Column
- *  jakarta.persistence.Entity
- *  jakarta.persistence.EnumType
- *  jakarta.persistence.Enumerated
- *  jakarta.persistence.Table
- *  lombok.Generated
- *  org.hibernate.annotations.SQLRestriction
- */
 package com.lab.module.workstation.entity;
 
 import com.lab.common.entity.BaseEntity;
@@ -25,7 +9,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import lombok.Generated;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -44,6 +27,7 @@ extends BaseEntity {
     @Column(nullable=false, length=20)
     private WorkstationType type = WorkstationType.SEAT;
     private Long occupantMentorGroupId;
+    private String occupantMentorGroupName;
     private Long currentUserId;
     private LocalDateTime occupiedAt;
     private String description;
@@ -55,157 +39,102 @@ extends BaseEntity {
     private Integer height;
     private Integer zIndex;
     private Integer rotation;
-
-    @Generated
     public Workstation() {
     }
-
-    @Generated
     public String getCode() {
         return this.code;
     }
-
-    @Generated
     public Long getLabId() {
         return this.labId;
     }
-
-    @Generated
     public WorkstationStatus getStatus() {
         return this.status;
     }
-
-    @Generated
     public WorkstationType getType() {
         return this.type;
     }
-
-    @Generated
     public Long getOccupantMentorGroupId() {
         return this.occupantMentorGroupId;
     }
-
-    @Generated
+    public String getOccupantMentorGroupName() {
+        return this.occupantMentorGroupName;
+    }
     public Long getCurrentUserId() {
         return this.currentUserId;
     }
-
-    @Generated
     public LocalDateTime getOccupiedAt() {
         return this.occupiedAt;
     }
-
-    @Generated
     public String getDescription() {
         return this.description;
     }
-
-    @Generated
     public Integer getPosX() {
         return this.posX;
     }
-
-    @Generated
     public Integer getPosY() {
         return this.posY;
     }
-
-    @Generated
     public Integer getWidth() {
         return this.width;
     }
-
-    @Generated
     public Integer getHeight() {
         return this.height;
     }
-
-    @Generated
     public Integer getZIndex() {
         return this.zIndex;
     }
-
-    @Generated
     public Integer getRotation() {
         return this.rotation;
     }
-
-    @Generated
     public void setCode(String code) {
         this.code = code;
     }
-
-    @Generated
     public void setLabId(Long labId) {
         this.labId = labId;
     }
-
-    @Generated
     public void setStatus(WorkstationStatus status) {
         this.status = status;
     }
-
-    @Generated
     public void setType(WorkstationType type) {
         this.type = type;
     }
-
-    @Generated
     public void setOccupantMentorGroupId(Long occupantMentorGroupId) {
         this.occupantMentorGroupId = occupantMentorGroupId;
     }
 
-    @Generated
+    public void setOccupantMentorGroupName(String occupantMentorGroupName) {
+        this.occupantMentorGroupName = occupantMentorGroupName;
+    }
     public void setCurrentUserId(Long currentUserId) {
         this.currentUserId = currentUserId;
     }
-
-    @Generated
     public void setOccupiedAt(LocalDateTime occupiedAt) {
         this.occupiedAt = occupiedAt;
     }
-
-    @Generated
     public void setDescription(String description) {
         this.description = description;
     }
-
-    @Generated
     public void setPosX(Integer posX) {
         this.posX = posX;
     }
-
-    @Generated
     public void setPosY(Integer posY) {
         this.posY = posY;
     }
-
-    @Generated
     public void setWidth(Integer width) {
         this.width = width;
     }
-
-    @Generated
     public void setHeight(Integer height) {
         this.height = height;
     }
-
-    @Generated
     public void setZIndex(Integer zIndex) {
         this.zIndex = zIndex;
     }
-
-    @Generated
     public void setRotation(Integer rotation) {
         this.rotation = rotation;
     }
-
-    @Generated
     public String toString() {
         return "Workstation(code=" + this.getCode() + ", labId=" + this.getLabId() + ", status=" + String.valueOf(this.getStatus()) + ", type=" + String.valueOf(this.getType()) + ", occupantMentorGroupId=" + this.getOccupantMentorGroupId() + ", currentUserId=" + this.getCurrentUserId() + ", occupiedAt=" + String.valueOf(this.getOccupiedAt()) + ", description=" + this.getDescription() + ", posX=" + this.getPosX() + ", posY=" + this.getPosY() + ", width=" + this.getWidth() + ", height=" + this.getHeight() + ", zIndex=" + this.getZIndex() + ", rotation=" + this.getRotation() + ")";
     }
-
-    @Generated
     public boolean equals(Object o) {
         if (o == this) {
             return true;
@@ -289,13 +218,9 @@ extends BaseEntity {
         String other$description = other.getDescription();
         return !(this$description == null ? other$description != null : !this$description.equals(other$description));
     }
-
-    @Generated
     protected boolean canEqual(Object other) {
         return other instanceof Workstation;
     }
-
-    @Generated
     public int hashCode() {
         int PRIME = 59;
         int result = super.hashCode();

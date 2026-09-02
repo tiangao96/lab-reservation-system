@@ -163,7 +163,7 @@ public class WorkstationController {
     @PreAuthorize(value="@perm.has('workstation:manage')")
     @AuditLog(module="workstation", action="updateMentorGroup", description="\u4fee\u6539\u5de5\u4f4d\u5f52\u5c5e\u5bfc\u5e08")
     public Result<Void> updateMentorGroup(@PathVariable("nanoId") String nanoId, @RequestBody(required=false) MentorGroupUpdateRequest req) {
-        this.workstationMentorService.setMentorGroup(nanoId, req != null ? req.getMentorGroupNanoId() : null);
+        this.workstationMentorService.setMentorGroup(nanoId, req != null ? req.getMentorGroupNanoId() : null, req != null ? req.getMentorGroupName() : null);
         return Result.ok();
     }
 
