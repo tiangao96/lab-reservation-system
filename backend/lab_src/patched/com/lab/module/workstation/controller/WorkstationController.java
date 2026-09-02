@@ -40,6 +40,7 @@ import com.lab.module.rbac.entity.CoreUser;
 import com.lab.module.rbac.repository.CoreUserRepository;
 import com.lab.module.workstation.entity.Workstation;
 import com.lab.module.workstation.entity.WorkstationRentalRequestItem;
+import com.lab.module.workstation.entity.WorkstationStatus;
 import com.lab.module.workstation.repository.WorkstationRepository;
 import com.lab.module.workstation.repository.WorkstationRentalRequestItemRepository;
 import com.lab.module.workstation.dto.MentorGroupStudentUsageVo;
@@ -57,6 +58,7 @@ import com.lab.module.workstation.service.WorkstationMentorService;
 import com.lab.module.workstation.service.WorkstationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -176,7 +178,17 @@ public class WorkstationController {
             throw new BizException(ResultCode.RESOURCE_NOT_FOUND);
         }
         if (ws.getCurrentUserId() == null) {
-            ws.setManualOccupantName((name == null || name.trim().isEmpty()) ? null : name.trim());
+            String mn = (name == null || name.trim().isEmpty()) ? null : name.trim();
+            ws.setManualOccupantName(mn);
+            if (mn != null && !mn.isEmpty()) {
+                if (ws.getStatus() == WorkstationStatus.IDLE) {
+                    ws.setStatus(WorkstationStatus.OCCUPIED);
+                    ws.setOccupiedAt(LocalDateTime.now());
+                }
+            } else if (ws.getStatus() == WorkstationStatus.OCCUPIED && ws.getCurrentUserId() == null) {
+                ws.setStatus(WorkstationStatus.IDLE);
+                ws.setOccupiedAt(null);
+            }
             this.workstationRepository.save(ws);
             return Result.ok();
         }
