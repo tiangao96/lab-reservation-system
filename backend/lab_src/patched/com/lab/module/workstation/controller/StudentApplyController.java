@@ -58,7 +58,7 @@ public class StudentApplyController {
     public Result<String> apply(@RequestBody @Valid StudentApplyRequest req) {
         Long mentorGroupId = this.resolveMentorGroupId(req);
         // 导师匹配不到也允许提交(导师组留空), 由管理员在后台手动确认
-        String nanoId = this.rentalRequestService.createStudentApply(req.getLabNanoId(), req.getWorkstationNanoId(), req.getStudentName(), req.getStudentNo(), req.getGradeName(), req.getMentorName(), mentorGroupId);
+        String nanoId = this.rentalRequestService.createStudentApply(req.getLabNanoId(), req.getWorkstationNanoId(), req.getStudentName(), req.getStudentNo(), req.getGradeName(), req.getMentorName(), mentorGroupId, req.getEndMonth());
         return Result.ok(nanoId);
     }
 

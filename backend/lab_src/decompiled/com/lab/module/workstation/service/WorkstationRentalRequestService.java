@@ -482,7 +482,7 @@ public class WorkstationRentalRequestService {
     }
 
     @Transactional
-    public String createStudentApply(String labNanoId, String workstationNanoId, String studentName, String studentNo, String gradeName, String mentorName, Long mentorGroupId) {
+    public String createStudentApply(String labNanoId, String workstationNanoId, String studentName, String studentNo, String gradeName, String mentorName, Long mentorGroupId, String endMonth) {
         // 导师组为空也允许提交(管理员后台手动确认)
         Workstation ws = this.workstationRepository.findByNanoId(workstationNanoId);
         if (ws == null) {
@@ -507,7 +507,18 @@ public class WorkstationRentalRequestService {
         r.setLabNanoId(labNanoId);
         r.setWorkstationNanoIds(List.of(workstationNanoId));
         r.setStartMonth(YearMonth.now().toString());
-        r.setEndMonth(WorkstationRentalRequestService.defaultStudentEndMonth());
+        String effEnd = endMonth;
+        if (effEnd == null || effEnd.isBlank()) {
+            effEnd = WorkstationRentalRequestService.defaultStudentEndMonth();
+        }
+        if (!effEnd.matches("\\d{4}-\\d{2}")) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u7ed3\u675f\u6708\u4efd\u683c\u5f0f\u5e94\u4e3a YYYY-MM");
+        }
+        YearMonth em = YearMonth.parse(effEnd);
+        if (em.isBefore(YearMonth.now())) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u7ed3\u675f\u6708\u4efd\u4e0d\u80fd\u65e9\u4e8e\u5f53\u524d\u6708\u4efd");
+        }
+        r.setEndMonth(effEnd);
         r.setMentorGroupNanoId(this.mentorGroupResolver.resolveNanoId(mentorGroupId));
         r.setReason(WorkstationRentalRequestService.buildStudentReason(studentName, studentNo, gradeName, mentorName));
         return this.create(labNanoId, r);

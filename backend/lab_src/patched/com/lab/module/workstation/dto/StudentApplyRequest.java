@@ -20,6 +20,8 @@ public class StudentApplyRequest {
     private String mentorName;
     /** 可选:不传时按导师姓名自动匹配导师组 */
     private String mentorGroupNanoId;
+    /** 可选:预计使用到 YYYY-MM, 不传默认次年6月 */
+    private String endMonth;
 
     public StudentApplyRequest() {
     }
@@ -52,6 +54,10 @@ public class StudentApplyRequest {
         return this.mentorGroupNanoId;
     }
 
+    public String getEndMonth() {
+        return this.endMonth;
+    }
+
     public void setLabNanoId(String labNanoId) {
         this.labNanoId = labNanoId;
     }
@@ -78,5 +84,9 @@ public class StudentApplyRequest {
 
     public void setMentorGroupNanoId(String mentorGroupNanoId) {
         this.mentorGroupNanoId = mentorGroupNanoId;
+    }
+
+    public void setEndMonth(String endMonth) {
+        this.endMonth = endMonth;
     }
 }
