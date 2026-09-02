@@ -223,6 +223,7 @@ public class WorkstationService {
         ws.setStatus(WorkstationStatus.OCCUPIED);
         ws.setCurrentUserId(userId);
         ws.setOccupiedAt(occupyAt);
+        ws.setManualOccupantName(null);
         this.workstationRepository.save(ws);
         this.historyService.transitionTo(ws.getId(), OccupancyType.OCCUPIED, OccupancySourceType.RENTAL, rentalId != null ? rentalId : this.currentRentalId(ws.getId()), ws.getOccupantMentorGroupId(), userId, occupyAt);
     }
@@ -469,7 +470,11 @@ public class WorkstationService {
         vo.setType(ws.getType() != null ? ws.getType().name() : null);
         vo.setOccupiedAt(ws.getOccupiedAt());
         vo.setCurrentUserNanoId(this.userIdResolver.resolveNanoId(ws.getCurrentUserId()));
-        vo.setCurrentUserName(this.userIdResolver.resolveName(ws.getCurrentUserId()));
+        String currentUserName = this.userIdResolver.resolveName(ws.getCurrentUserId());
+        if (currentUserName == null) {
+            currentUserName = ws.getManualOccupantName();
+        }
+        vo.setCurrentUserName(currentUserName);
         String resolvedMgName = this.mentorGroupResolver.resolveName(ws.getOccupantMentorGroupId());
         if (resolvedMgName == null) {
             resolvedMgName = this.workstationRepository.findMentorGroupName(ws.getId());

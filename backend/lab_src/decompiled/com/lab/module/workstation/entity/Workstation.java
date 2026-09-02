@@ -31,6 +31,7 @@ extends BaseEntity {
     private Long currentUserId;
     private LocalDateTime occupiedAt;
     private String description;
+    private String manualOccupantName;
     @Column(name="pos_x")
     private Integer posX;
     @Column(name="pos_y")
@@ -67,6 +68,9 @@ extends BaseEntity {
     }
     public String getDescription() {
         return this.description;
+    }
+    public String getManualOccupantName() {
+        return this.manualOccupantName;
     }
     public Integer getPosX() {
         return this.posX;
@@ -113,6 +117,9 @@ extends BaseEntity {
     }
     public void setDescription(String description) {
         this.description = description;
+    }
+    public void setManualOccupantName(String manualOccupantName) {
+        this.manualOccupantName = manualOccupantName;
     }
     public void setPosX(Integer posX) {
         this.posX = posX;

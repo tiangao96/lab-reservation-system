@@ -176,7 +176,9 @@ public class WorkstationController {
             throw new BizException(ResultCode.RESOURCE_NOT_FOUND);
         }
         if (ws.getCurrentUserId() == null) {
-            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u6ca1\u6709\u5360\u7528\u5b66\u751f");
+            ws.setManualOccupantName((name == null || name.trim().isEmpty()) ? null : name.trim());
+            this.workstationRepository.save(ws);
+            return Result.ok();
         }
         if (name == null || name.trim().isEmpty()) {
             throw new BizException(ResultCode.BAD_REQUEST, "\u5b66\u751f\u59d3\u540d\u4e0d\u80fd\u4e3a\u7a7a");
