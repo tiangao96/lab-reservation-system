@@ -173,6 +173,9 @@ public class WorkstationRentalRequestService {
                 }
                 ws.setStatus(WorkstationStatus.OCCUPIED);
                 ws.setOccupantMentorGroupId(r.getRequesterMentorGroupId());
+                if (studentInfo.name != null && !studentInfo.name.isBlank()) {
+                    ws.setManualOccupantName(studentInfo.name);
+                }
                 this.workstationRepository.save(ws);
                 this.historyService.transitionTo(ws.getId(), OccupancyType.OCCUPIED, OccupancySourceType.RENTAL, r.getId(), r.getRequesterMentorGroupId(), null, LocalDateTime.now());
             }
@@ -227,6 +230,7 @@ public class WorkstationRentalRequestService {
                     }
                     ws.setStatus(WorkstationStatus.IDLE);
                     ws.setOccupantMentorGroupId(null);
+                    ws.setManualOccupantName(null);
                     this.workstationRepository.save(ws);
                 }
             } else {
@@ -485,6 +489,16 @@ public class WorkstationRentalRequestService {
         }
         if (ws.getStatus() != WorkstationStatus.IDLE) {
             throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u7533\u8bf7(\u4ec5\u7a7a\u95f2\u5de5\u4f4d\u53ef\u7533\u8bf7): " + ws.getCode());
+        }
+        if (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank()) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u6709\u4eba\u4f7f\u7528: " + ws.getCode());
+        }
+        List<WorkstationRentalRequestItem> exists = this.itemRepository.findByWorkstationIdIn(java.util.List.of(ws.getId()));
+        for (WorkstationRentalRequestItem it : exists) {
+            WorkstationRentalRequest rr = it.getRentalRequestId() == null ? null : this.requestRepository.findById(it.getRentalRequestId()).orElse(null);
+            if (rr != null && rr.getStatus() != null && (rr.getStatus().isPending() || rr.getStatus() == RentalRequestStatus.APPROVED)) {
+                throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u6709\u5f85\u5ba1\u6279\u6216\u5df2\u901a\u8fc7\u7684\u7533\u8bf7: " + ws.getCode());
+            }
         }
         RentalRequestCreateRequest r = new RentalRequestCreateRequest();
         r.setLabNanoId(labNanoId);

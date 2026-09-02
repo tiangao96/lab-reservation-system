@@ -258,8 +258,8 @@
       var stText = '', cls = '';
       var isSeat = w.type === 'SEAT' || w.type == null;
       if (!isSeat) { cls = 'struct'; stText = w.description || w.type || ''; }
-      else if (w.status === 'IDLE') { cls = 'idle'; stText = '空闲可申请'; }
-      else if (w.status === 'OCCUPIED' || w.status === 'PRE_RESERVED') { cls = 'occ'; stText = '已占用' + (w.occupantName ? '(' + w.occupantName + ')' : ''); }
+      else if (w.status === 'IDLE' && !w.manualOccupantName) { cls = 'idle'; stText = '空闲可申请'; }
+      else if (w.status === 'OCCUPIED' || w.status === 'PRE_RESERVED' || (w.status === 'IDLE' && w.manualOccupantName)) { cls = 'occ'; stText = '已占用' + (w.occupantName ? '(' + w.occupantName + ')' : ''); }
       else { cls = 'no'; stText = w.status || '不可用'; }
       cell.className = 'ws-cell ' + cls;
       var x = (w.posX == null ? 0 : w.posX) * scale, y = (w.posY == null ? 0 : w.posY) * scale;
@@ -269,7 +269,7 @@
       var code = document.createElement('div'); code.className = 'code'; code.textContent = w.code;
       var st = document.createElement('div'); st.className = 'st'; st.textContent = stText;
       cell.appendChild(code); cell.appendChild(st);
-      if (isSeat && w.status === 'IDLE') {
+      if (isSeat && w.status === 'IDLE' && !w.manualOccupantName) {
         cell.onclick = function(){
           canvas.querySelectorAll('.ws-cell.sel').forEach(function(c){ c.classList.remove('sel'); });
           cell.classList.add('sel');

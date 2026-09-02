@@ -12,6 +12,7 @@ import com.lab.module.workstation.dto.StudentApplyRequest;
 import com.lab.module.workstation.entity.Lab;
 import com.lab.module.workstation.entity.RentalRequestStatus;
 import com.lab.module.workstation.entity.Workstation;
+import com.lab.module.workstation.entity.WorkstationStatus;
 import com.lab.module.workstation.entity.WorkstationRentalRequest;
 import com.lab.module.workstation.entity.WorkstationRentalRequestItem;
 import com.lab.module.workstation.repository.LabRepository;
@@ -138,7 +139,8 @@ public class StudentApplyController {
             m.put("height", ws.getHeight());
             m.put("zIndex", ws.getZIndex());
             m.put("rotation", ws.getRotation());
-            m.put("occupantName", occupantNameByWs.get(ws.getId()));
+            m.put("occupantName", this.realOccupantName(ws, occupantNameByWs.get(ws.getId())));
+            m.put("manualOccupantName", ws.getManualOccupantName());
             m.put("occupantMentorGroupName", ws.getOccupantMentorGroupId() == null ? null : this.mentorGroupResolver.resolveName(ws.getOccupantMentorGroupId()));
             list.add(m);
         }
@@ -182,6 +184,32 @@ public class StudentApplyController {
             list.add(m);
         }
         return Result.ok(list);
+    }
+
+    /**
+     * 真实占用者名: 与管理员工位视图口径一致。
+     * 优先级: 系统学生账号(currentUserId) > 手动占用名(manual_occupant_name) > 已通过的学生申请解析名。
+     * IDLE 但存在手动占用名的工位视为已有人(不允许再申请), 同样返回该名字。
+     */
+    private String realOccupantName(Workstation ws, String approvedName) {
+        WorkstationStatus st = ws.getStatus();
+        String manual = ws.getManualOccupantName();
+        if (st == WorkstationStatus.OCCUPIED || st == WorkstationStatus.PRE_RESERVED) {
+            if (ws.getCurrentUserId() != null) {
+                String n = this.userRepository.findById(ws.getCurrentUserId()).map(CoreUser::getName).orElse(null);
+                if (n != null && !n.isBlank()) {
+                    return n;
+                }
+            }
+            if (manual != null && !manual.isBlank()) {
+                return manual;
+            }
+            return approvedName;
+        }
+        if (st == WorkstationStatus.IDLE && manual != null && !manual.isBlank()) {
+            return manual;
+        }
+        return null;
     }
 
     private Map<Long, String> occupantNameByWorkstationIds(Collection<Long> wsIds) {
