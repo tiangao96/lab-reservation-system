@@ -32,6 +32,9 @@ extends BaseEntity {
     private LocalDateTime occupiedAt;
     private String description;
     private String manualOccupantName;
+    private String gradeName;
+    private String degree;
+    private String expectedReleaseMonth;
     @Column(name="pos_x")
     private Integer posX;
     @Column(name="pos_y")
@@ -71,6 +74,15 @@ extends BaseEntity {
     }
     public String getManualOccupantName() {
         return this.manualOccupantName;
+    }
+    public String getGradeName() {
+        return this.gradeName;
+    }
+    public String getDegree() {
+        return this.degree;
+    }
+    public String getExpectedReleaseMonth() {
+        return this.expectedReleaseMonth;
     }
     public Integer getPosX() {
         return this.posX;
@@ -120,6 +132,15 @@ extends BaseEntity {
     }
     public void setManualOccupantName(String manualOccupantName) {
         this.manualOccupantName = manualOccupantName;
+    }
+    public void setGradeName(String gradeName) {
+        this.gradeName = gradeName;
+    }
+    public void setDegree(String degree) {
+        this.degree = degree;
+    }
+    public void setExpectedReleaseMonth(String expectedReleaseMonth) {
+        this.expectedReleaseMonth = expectedReleaseMonth;
     }
     public void setPosX(Integer posX) {
         this.posX = posX;

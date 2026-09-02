@@ -220,6 +220,14 @@ public class WorkstationController {
         return Result.ok();
     }
 
+    @PutMapping(value={"/{nanoId}/grade-info"})
+    @PreAuthorize(value="@perm.has('workstation:manage')")
+    @AuditLog(module="workstation", action="updateGradeInfo", description="\u4fee\u6539\u5de5\u4f4d\u5e74\u7ea7\u4e0e\u5b66\u5386")
+    public Result<Void> updateGradeInfo(@PathVariable("nanoId") String nanoId, @RequestParam(value="gradeName", required=false) String gradeName, @RequestParam(value="degree", required=false) String degree) {
+        this.workstationService.updateGradeInfo(nanoId, gradeName, degree);
+        return Result.ok();
+    }
+
     @GetMapping(value={"/mentor-group-student-usage"})
     @PreAuthorize(value="@perm.has('workstation:usage:view')")
     public Result<MentorGroupStudentUsageVo> mentorGroupStudentUsage(@RequestParam("mentorGroupNanoId") String mentorGroupNanoId, @RequestParam("startMonth") String startMonth, @RequestParam("endMonth") String endMonth) {

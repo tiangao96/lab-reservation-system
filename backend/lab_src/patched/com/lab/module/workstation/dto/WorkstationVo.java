@@ -35,6 +35,9 @@ public class WorkstationVo {
     @JsonProperty(value="zIndex")
     private Integer zIndex;
     private Integer rotation;
+    private String gradeName;
+    private String degreeName;
+    private String expectedReleaseMonth;
 
         public WorkstationVo() {
     }
@@ -127,6 +130,18 @@ public class WorkstationVo {
         return this.rotation;
     }
 
+        public String getGradeName() {
+        return this.gradeName;
+    }
+
+        public String getDegreeName() {
+        return this.degreeName;
+    }
+
+        public String getExpectedReleaseMonth() {
+        return this.expectedReleaseMonth;
+    }
+
         public void setNanoId(String nanoId) {
         this.nanoId = nanoId;
     }
@@ -214,6 +229,18 @@ public class WorkstationVo {
 
         public void setRotation(Integer rotation) {
         this.rotation = rotation;
+    }
+
+        public void setGradeName(String gradeName) {
+        this.gradeName = gradeName;
+    }
+
+        public void setDegreeName(String degreeName) {
+        this.degreeName = degreeName;
+    }
+
+        public void setExpectedReleaseMonth(String expectedReleaseMonth) {
+        this.expectedReleaseMonth = expectedReleaseMonth;
     }
 
         public boolean equals(Object o) {

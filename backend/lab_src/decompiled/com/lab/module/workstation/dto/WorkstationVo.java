@@ -10,7 +10,6 @@ package com.lab.module.workstation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
-import lombok.Generated;
 
 public class WorkstationVo {
     private String nanoId;
@@ -24,6 +23,7 @@ public class WorkstationVo {
     private String currentUserName;
     private String description;
     private String occupantMentorGroupName;
+    private String occupantMentorGroupNanoId;
     private String reservedStartMonth;
     private String reservedEndMonth;
     private Boolean rentable;
@@ -35,224 +35,215 @@ public class WorkstationVo {
     @JsonProperty(value="zIndex")
     private Integer zIndex;
     private Integer rotation;
+    private String gradeName;
+    private String degreeName;
+    private String expectedReleaseMonth;
 
-    @Generated
-    public WorkstationVo() {
+        public WorkstationVo() {
     }
 
-    @Generated
-    public String getNanoId() {
+        public String getNanoId() {
         return this.nanoId;
     }
 
-    @Generated
-    public String getCode() {
+        public String getCode() {
         return this.code;
     }
 
-    @Generated
-    public String getLabNanoId() {
+        public String getLabNanoId() {
         return this.labNanoId;
     }
 
-    @Generated
-    public String getStatus() {
+        public String getStatus() {
         return this.status;
     }
 
-    @Generated
-    public String getMonthStatus() {
+        public String getMonthStatus() {
         return this.monthStatus;
     }
 
-    @Generated
-    public String getType() {
+        public String getType() {
         return this.type;
     }
 
-    @Generated
-    public LocalDateTime getOccupiedAt() {
+        public LocalDateTime getOccupiedAt() {
         return this.occupiedAt;
     }
 
-    @Generated
-    public String getCurrentUserNanoId() {
+        public String getCurrentUserNanoId() {
         return this.currentUserNanoId;
     }
 
-    @Generated
-    public String getCurrentUserName() {
+        public String getCurrentUserName() {
         return this.currentUserName;
     }
 
-    @Generated
-    public String getDescription() {
+        public String getDescription() {
         return this.description;
     }
 
-    @Generated
-    public String getOccupantMentorGroupName() {
+        public String getOccupantMentorGroupName() {
         return this.occupantMentorGroupName;
     }
 
-    @Generated
-    public String getReservedStartMonth() {
+        public String getOccupantMentorGroupNanoId() {
+        return this.occupantMentorGroupNanoId;
+    }
+
+        public String getReservedStartMonth() {
         return this.reservedStartMonth;
     }
 
-    @Generated
-    public String getReservedEndMonth() {
+        public String getReservedEndMonth() {
         return this.reservedEndMonth;
     }
 
-    @Generated
-    public Boolean getRentable() {
+        public Boolean getRentable() {
         return this.rentable;
     }
 
-    @Generated
-    public String getUnrentableReason() {
+        public String getUnrentableReason() {
         return this.unrentableReason;
     }
 
-    @Generated
-    public Integer getPosX() {
+        public Integer getPosX() {
         return this.posX;
     }
 
-    @Generated
-    public Integer getPosY() {
+        public Integer getPosY() {
         return this.posY;
     }
 
-    @Generated
-    public Integer getWidth() {
+        public Integer getWidth() {
         return this.width;
     }
 
-    @Generated
-    public Integer getHeight() {
+        public Integer getHeight() {
         return this.height;
     }
 
-    @Generated
-    public Integer getZIndex() {
+        public Integer getZIndex() {
         return this.zIndex;
     }
 
-    @Generated
-    public Integer getRotation() {
+        public Integer getRotation() {
         return this.rotation;
     }
 
-    @Generated
-    public void setNanoId(String nanoId) {
+        public String getGradeName() {
+        return this.gradeName;
+    }
+
+        public String getDegreeName() {
+        return this.degreeName;
+    }
+
+        public String getExpectedReleaseMonth() {
+        return this.expectedReleaseMonth;
+    }
+
+        public void setNanoId(String nanoId) {
         this.nanoId = nanoId;
     }
 
-    @Generated
-    public void setCode(String code) {
+        public void setCode(String code) {
         this.code = code;
     }
 
-    @Generated
-    public void setLabNanoId(String labNanoId) {
+        public void setLabNanoId(String labNanoId) {
         this.labNanoId = labNanoId;
     }
 
-    @Generated
-    public void setStatus(String status) {
+        public void setStatus(String status) {
         this.status = status;
     }
 
-    @Generated
-    public void setMonthStatus(String monthStatus) {
+        public void setMonthStatus(String monthStatus) {
         this.monthStatus = monthStatus;
     }
 
-    @Generated
-    public void setType(String type) {
+        public void setType(String type) {
         this.type = type;
     }
 
-    @Generated
-    public void setOccupiedAt(LocalDateTime occupiedAt) {
+        public void setOccupiedAt(LocalDateTime occupiedAt) {
         this.occupiedAt = occupiedAt;
     }
 
-    @Generated
-    public void setCurrentUserNanoId(String currentUserNanoId) {
+        public void setCurrentUserNanoId(String currentUserNanoId) {
         this.currentUserNanoId = currentUserNanoId;
     }
 
-    @Generated
-    public void setCurrentUserName(String currentUserName) {
+        public void setCurrentUserName(String currentUserName) {
         this.currentUserName = currentUserName;
     }
 
-    @Generated
-    public void setDescription(String description) {
+        public void setDescription(String description) {
         this.description = description;
     }
 
-    @Generated
-    public void setOccupantMentorGroupName(String occupantMentorGroupName) {
+        public void setOccupantMentorGroupName(String occupantMentorGroupName) {
         this.occupantMentorGroupName = occupantMentorGroupName;
     }
 
-    @Generated
-    public void setReservedStartMonth(String reservedStartMonth) {
+        public void setOccupantMentorGroupNanoId(String occupantMentorGroupNanoId) {
+        this.occupantMentorGroupNanoId = occupantMentorGroupNanoId;
+    }
+
+        public void setReservedStartMonth(String reservedStartMonth) {
         this.reservedStartMonth = reservedStartMonth;
     }
 
-    @Generated
-    public void setReservedEndMonth(String reservedEndMonth) {
+        public void setReservedEndMonth(String reservedEndMonth) {
         this.reservedEndMonth = reservedEndMonth;
     }
 
-    @Generated
-    public void setRentable(Boolean rentable) {
+        public void setRentable(Boolean rentable) {
         this.rentable = rentable;
     }
 
-    @Generated
-    public void setUnrentableReason(String unrentableReason) {
+        public void setUnrentableReason(String unrentableReason) {
         this.unrentableReason = unrentableReason;
     }
 
-    @Generated
-    public void setPosX(Integer posX) {
+        public void setPosX(Integer posX) {
         this.posX = posX;
     }
 
-    @Generated
-    public void setPosY(Integer posY) {
+        public void setPosY(Integer posY) {
         this.posY = posY;
     }
 
-    @Generated
-    public void setWidth(Integer width) {
+        public void setWidth(Integer width) {
         this.width = width;
     }
 
-    @Generated
-    public void setHeight(Integer height) {
+        public void setHeight(Integer height) {
         this.height = height;
     }
 
     @JsonProperty(value="zIndex")
-    @Generated
-    public void setZIndex(Integer zIndex) {
+        public void setZIndex(Integer zIndex) {
         this.zIndex = zIndex;
     }
 
-    @Generated
-    public void setRotation(Integer rotation) {
+        public void setRotation(Integer rotation) {
         this.rotation = rotation;
     }
 
-    @Generated
-    public boolean equals(Object o) {
+        public void setGradeName(String gradeName) {
+        this.gradeName = gradeName;
+    }
+
+        public void setDegreeName(String degreeName) {
+        this.degreeName = degreeName;
+    }
+
+        public void setExpectedReleaseMonth(String expectedReleaseMonth) {
+        this.expectedReleaseMonth = expectedReleaseMonth;
+    }
+
+        public boolean equals(Object o) {
         if (o == this) {
             return true;
         }
@@ -368,13 +359,11 @@ public class WorkstationVo {
         return !(this$unrentableReason == null ? other$unrentableReason != null : !this$unrentableReason.equals(other$unrentableReason));
     }
 
-    @Generated
-    protected boolean canEqual(Object other) {
+        protected boolean canEqual(Object other) {
         return other instanceof WorkstationVo;
     }
 
-    @Generated
-    public int hashCode() {
+        public int hashCode() {
         int PRIME = 59;
         int result = 1;
         Boolean $rentable = this.getRentable();
@@ -422,8 +411,7 @@ public class WorkstationVo {
         return result;
     }
 
-    @Generated
-    public String toString() {
+        public String toString() {
         return "WorkstationVo(nanoId=" + this.getNanoId() + ", code=" + this.getCode() + ", labNanoId=" + this.getLabNanoId() + ", status=" + this.getStatus() + ", monthStatus=" + this.getMonthStatus() + ", type=" + this.getType() + ", occupiedAt=" + String.valueOf(this.getOccupiedAt()) + ", currentUserNanoId=" + this.getCurrentUserNanoId() + ", currentUserName=" + this.getCurrentUserName() + ", description=" + this.getDescription() + ", occupantMentorGroupName=" + this.getOccupantMentorGroupName() + ", reservedStartMonth=" + this.getReservedStartMonth() + ", reservedEndMonth=" + this.getReservedEndMonth() + ", rentable=" + this.getRentable() + ", unrentableReason=" + this.getUnrentableReason() + ", posX=" + this.getPosX() + ", posY=" + this.getPosY() + ", width=" + this.getWidth() + ", height=" + this.getHeight() + ", zIndex=" + this.getZIndex() + ", rotation=" + this.getRotation() + ")";
     }
 }

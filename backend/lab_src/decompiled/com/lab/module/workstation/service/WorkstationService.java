@@ -481,6 +481,13 @@ public class WorkstationService {
         }
         vo.setOccupantMentorGroupName(resolvedMgName);
         vo.setOccupantMentorGroupNanoId(this.mentorGroupResolver.resolveNanoId(ws.getOccupantMentorGroupId()));
+        vo.setGradeName(ws.getGradeName());
+        vo.setDegreeName(ws.getDegree());
+        String exp = ws.getExpectedReleaseMonth();
+        if (exp == null) {
+            exp = this.computeExpectedRelease(ws.getGradeName(), ws.getDegree());
+        }
+        vo.setExpectedReleaseMonth(exp);
         if (rentalInfo != null) {
             vo.setReservedStartMonth((String)rentalInfo[2]);
             vo.setReservedEndMonth((String)rentalInfo[3]);
@@ -493,6 +500,38 @@ public class WorkstationService {
         vo.setZIndex(ws.getZIndex());
         vo.setRotation(ws.getRotation());
         return vo;
+    }
+
+    public void updateGradeInfo(String nanoId, String gradeName, String degree) {
+        Workstation ws = this.workstationRepository.findByNanoId(nanoId);
+        if (ws == null) {
+            throw new com.lab.common.exception.BizException(com.lab.common.api.ResultCode.RESOURCE_NOT_FOUND);
+        }
+        String g = (gradeName == null || gradeName.trim().isEmpty()) ? null : gradeName.trim();
+        String d = (degree == null || degree.trim().isEmpty()) ? null : degree.trim();
+        ws.setGradeName(g);
+        ws.setDegree(d);
+        ws.setExpectedReleaseMonth(g == null ? null : this.computeExpectedRelease(g, d));
+        this.workstationRepository.save(ws);
+    }
+
+    private String computeExpectedRelease(String gradeName, String degree) {
+        if (gradeName == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(20\\d{2}|\\d{2})").matcher(gradeName);
+        if (!m.find()) {
+            return null;
+        }
+        int year = Integer.parseInt(m.group(1));
+        if (year < 100) {
+            year += 2000;
+        }
+        if (year < 2000 || year > 2100) {
+            return null;
+        }
+        int years = degree != null && degree.contains("\u672c\u79d1") ? 4 : 3;
+        return (year + years) + "-06";
     }
 
         public WorkstationService(WorkstationRepository workstationRepository, LabRepository labRepository, PermissionService permissionService, UserIdResolver userIdResolver, MentorGroupResolver mentorGroupResolver, WorkstationRentalRequestItemRepository rentalItemRepository, WorkstationRentalRequestRepository rentalRequestRepository, WorkstationOccupancyHistoryService historyService) {
