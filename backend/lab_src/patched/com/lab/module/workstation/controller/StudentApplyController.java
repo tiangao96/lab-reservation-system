@@ -22,6 +22,7 @@ import com.lab.module.workstation.repository.WorkstationRepository;
 import com.lab.module.workstation.service.WorkstationRentalRequestService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -124,14 +125,40 @@ public class StudentApplyController {
             return Result.fail(ResultCode.BAD_REQUEST, "\u5b9e\u9a8c\u5ba4\u4e0d\u5b58\u5728: " + labNanoId);
         }
         List<Workstation> wss = this.workstationRepository.findByLabId(lab.getId());
-        Map<Long, String> occupantNameByWs = this.occupantNameByWorkstationIds(wss.stream().map(BaseEntity::getId).toList());
+        List<Long> wsIds = wss.stream().map(BaseEntity::getId).toList();
+        Map<Long, String> occupantNameByWs = this.occupantNameByWorkstationIds(wsIds);
+        Map<Long, WorkstationRentalRequest> pendingByWs = this.pendingRequestByWorkstationIds(wsIds);
+        String nowYm = YearMonth.now().toString();
+        List<Long> reservedIds = wsIds.isEmpty() ? new ArrayList<Long>() : this.itemRepository.findApprovedReservedWorkstationIds(wsIds, nowYm);
         List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
         for (Workstation ws : wss) {
             Map<String, Object> m = new LinkedHashMap<String, Object>();
+            WorkstationStatus st = ws.getStatus() == null ? WorkstationStatus.IDLE : ws.getStatus();
+            String manual = ws.getManualOccupantName();
+            boolean hasManual = manual != null && !manual.isBlank();
+            boolean hasUser = ws.getCurrentUserId() != null;
+            String approvedName = occupantNameByWs.get(ws.getId());
+            WorkstationRentalRequest pending = pendingByWs.get(ws.getId());
+            String outStatus = st.name();
+            String occupantName = null;
+            if (pending != null) {
+                outStatus = WorkstationStatus.PRE_RESERVED.name();
+                WorkstationRentalRequestService.StudentInfo pi = WorkstationRentalRequestService.parseStudentInfo(pending.getReason());
+                occupantName = pi == null ? null : pi.name;
+            } else if (st == WorkstationStatus.IDLE || st == WorkstationStatus.PRE_RESERVED) {
+                if (hasUser || hasManual || approvedName != null || reservedIds.contains(ws.getId())) {
+                    outStatus = WorkstationStatus.PRE_RESERVED.name();
+                    occupantName = this.realOccupantName(ws, approvedName);
+                } else {
+                    outStatus = WorkstationStatus.IDLE.name();
+                }
+            } else {
+                occupantName = this.realOccupantName(ws, approvedName);
+            }
             m.put("nanoId", ws.getNanoId());
             m.put("code", ws.getCode());
             m.put("type", ws.getType() == null ? null : ws.getType().name());
-            m.put("status", ws.getStatus() == null ? null : ws.getStatus().name());
+            m.put("status", outStatus);
             m.put("description", ws.getDescription());
             m.put("posX", ws.getPosX());
             m.put("posY", ws.getPosY());
@@ -139,7 +166,7 @@ public class StudentApplyController {
             m.put("height", ws.getHeight());
             m.put("zIndex", ws.getZIndex());
             m.put("rotation", ws.getRotation());
-            m.put("occupantName", this.realOccupantName(ws, occupantNameByWs.get(ws.getId())));
+            m.put("occupantName", occupantName);
             m.put("manualOccupantName", ws.getManualOccupantName());
             m.put("occupantMentorGroupName", ws.getOccupantMentorGroupId() == null ? null : this.mentorGroupResolver.resolveName(ws.getOccupantMentorGroupId()));
             list.add(m);
@@ -210,6 +237,26 @@ public class StudentApplyController {
             return manual;
         }
         return null;
+    }
+
+    private Map<Long, WorkstationRentalRequest> pendingRequestByWorkstationIds(Collection<Long> wsIds) {
+        Map<Long, WorkstationRentalRequest> map = new LinkedHashMap<Long, WorkstationRentalRequest>();
+        if (wsIds == null || wsIds.isEmpty()) {
+            return map;
+        }
+        List<WorkstationRentalRequestItem> items = this.itemRepository.findByWorkstationIdIn(wsIds);
+        if (items.isEmpty()) {
+            return map;
+        }
+        List<Long> requestIds = items.stream().map(WorkstationRentalRequestItem::getRentalRequestId).distinct().collect(Collectors.toList());
+        Map<Long, WorkstationRentalRequest> reqById = this.requestRepository.findAllById(requestIds).stream().collect(Collectors.toMap(BaseEntity::getId, r -> r, (a, b) -> a));
+        for (WorkstationRentalRequestItem item : items) {
+            WorkstationRentalRequest r = reqById.get(item.getRentalRequestId());
+            if (r != null && r.getStatus() == RentalRequestStatus.PENDING && !map.containsKey(item.getWorkstationId())) {
+                map.put(item.getWorkstationId(), r);
+            }
+        }
+        return map;
     }
 
     private Map<Long, String> occupantNameByWorkstationIds(Collection<Long> wsIds) {

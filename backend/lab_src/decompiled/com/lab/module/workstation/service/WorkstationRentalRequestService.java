@@ -168,7 +168,8 @@ public class WorkstationRentalRequestService {
         if (studentInfo != null) {
             for (WorkstationRentalRequestItem item : items) {
                 Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
-                if (ws.getStatus() != WorkstationStatus.IDLE) {
+                boolean occByStudent = ws.getCurrentUserId() != null || (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank());
+                if (ws.getStatus() != WorkstationStatus.IDLE && !(ws.getStatus() == WorkstationStatus.PRE_RESERVED && !occByStudent)) {
                     throw new BizException(ResultCode.BAD_REQUEST, "\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u5360\u7528: " + ws.getCode());
                 }
                 ws.setStatus(WorkstationStatus.OCCUPIED);
@@ -487,11 +488,13 @@ public class WorkstationRentalRequestService {
         if (ws == null) {
             throw new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728: " + workstationNanoId);
         }
-        if (ws.getStatus() != WorkstationStatus.IDLE) {
-            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u7533\u8bf7(\u4ec5\u7a7a\u95f2\u5de5\u4f4d\u53ef\u7533\u8bf7): " + ws.getCode());
+        boolean hasOccupant = ws.getCurrentUserId() != null || (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank());
+        boolean canApply = ws.getStatus() == WorkstationStatus.IDLE || (ws.getStatus() == WorkstationStatus.PRE_RESERVED && !hasOccupant);
+        if (!canApply) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u7533\u8bf7(\u5df2\u88ab\u4f7f\u7528\u6216\u4e0d\u53ef\u7528): " + ws.getCode());
         }
-        if (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank()) {
-            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u6709\u4eba\u4f7f\u7528: " + ws.getCode());
+        if (ws.getStatus() == WorkstationStatus.PRE_RESERVED && !hasOccupant && this.itemRepository.countApprovedByWorkstationAndMonth(ws.getId(), YearMonth.now().toString()) > 0L) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u88ab\u8bfe\u9898\u7ec4\u6b63\u5f0f\u5206\u914d, \u4e0d\u53ef\u7533\u8bf7: " + ws.getCode());
         }
         List<WorkstationRentalRequestItem> exists = this.itemRepository.findByWorkstationIdIn(java.util.List.of(ws.getId()));
         for (WorkstationRentalRequestItem it : exists) {
