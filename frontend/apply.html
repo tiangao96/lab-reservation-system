@@ -167,7 +167,10 @@
     });
   }
 
-  function defaultEndMonth(){
+  function defaultEndMonth(gradeYear){
+    if (gradeYear) {
+      return (parseInt(gradeYear, 10) + 4) + '-06'; // 默认按本科4年, 毕业年6月
+    }
     var d = new Date();
     var y = d.getFullYear() + 1;
     var m = 6;
@@ -188,19 +191,45 @@
     }).catch(function(e){ msg('msgStep1', e, false); });
   }
 
-  // 学号前4位=年份, 自动识别年级
+  // 学号前4位=年份, 自动识别年级, 并联动「预计使用到」
+  var _applyManualEnd = false; // 用户手动改过「预计使用到」后不再自动覆盖
+  function applyEndByGrade(gradeText){
+    var m = String(gradeText || '').match(/(19\d{2}|20\d{2})/);
+    if (!m) return null;
+    var y = parseInt(m[1], 10);
+    if (y < 2000 || y > 2030) return null;
+    if (!_applyManualEnd) { $('fEndMonth').value = defaultEndMonth(m[1]); }
+    return m[1];
+  }
+  function gradeTipText(yText, tipEl, endEl){
+    if (_applyManualEnd) {
+      tipEl.textContent = '已按 ' + yText + ' 级识别; 「预计使用到」已手动设为 ' + (endEl.value || '') + ', 请确认';
+    } else {
+      tipEl.textContent = '已按 ' + yText + ' 级自动将「预计使用到」填为 ' + (endEl.value || '') + ' (默认本科4年毕业); 研究生请改为 ' + (parseInt(yText, 10) + 3) + '-06';
+    }
+  }
   function bindAutoGrade(){
-    var noEl = $('fNo'), gradeEl = $('fGrade'), tipEl = $('gradeTip');
+    var noEl = $('fNo'), gradeEl = $('fGrade'), tipEl = $('gradeTip'), endEl = $('fEndMonth');
+    endEl.addEventListener('input', function(){ _applyManualEnd = true; });
     noEl.addEventListener('input', function(){
       var v = noEl.value.trim();
       var m = v.match(/^(19\d{2}|20\d{2})/);
       if (m) {
         gradeEl.value = m[1] + '级';
-        tipEl.textContent = '已按学号自动识别为 ' + m[1] + '级(可手动修改)';
+        var y = applyEndByGrade(m[1]);
+        gradeTipText(m[1], tipEl, endEl);
         tipEl.style.color = '#52a84b';
       } else {
-        tipEl.textContent = '学号前4位应为入学年份, 如 2024';
+        tipEl.textContent = '学号前4位应为入学年份, 如 2025';
         tipEl.style.color = '#e5484d';
+      }
+    });
+    gradeEl.addEventListener('input', function(){
+      var v = gradeEl.value.trim();
+      var m = v.match(/(19\d{2}|20\d{2})/);
+      if (m) {
+        var y = applyEndByGrade(m[1]);
+        if (y) { gradeTipText(m[1], tipEl, endEl); tipEl.style.color = '#52a84b'; }
       }
     });
   }
@@ -315,6 +344,7 @@
     ['fName','fNo','fGrade','fMentor'].forEach(function(id){ $(id).value = ''; });
     $('fLab').value = '';
     $('fEndMonth').value = defaultEndMonth();
+    _applyManualEnd = false;
     $('gradeTip').textContent = '输入学号后自动识别';
     $('gradeTip').style.color = '';
     selWs = null; selLab = null;
