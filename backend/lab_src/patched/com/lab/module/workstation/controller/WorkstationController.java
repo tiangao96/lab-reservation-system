@@ -184,12 +184,14 @@ public class WorkstationController {
             String mn = (name == null || name.trim().isEmpty()) ? null : name.trim();
             ws.setManualOccupantName(mn);
             if (mn != null && !mn.isEmpty()) {
-                if (ws.getStatus() == WorkstationStatus.IDLE) {
+                // 手动填写使用人姓名(学生/导师) => 工位标为占用中
+                if (ws.getStatus() == WorkstationStatus.IDLE || ws.getStatus() == WorkstationStatus.PRE_RESERVED) {
                     ws.setStatus(WorkstationStatus.OCCUPIED);
                     ws.setOccupiedAt(LocalDateTime.now());
                 }
-            } else if (ws.getStatus() == WorkstationStatus.OCCUPIED && ws.getCurrentUserId() == null) {
-                ws.setStatus(WorkstationStatus.IDLE);
+            } else if (ws.getStatus() == WorkstationStatus.OCCUPIED || ws.getStatus() == WorkstationStatus.PRE_RESERVED) {
+                // 清空姓名 => 若仍绑定导师组则回到预占(位子仍归导师),否则回到空闲
+                ws.setStatus(ws.getOccupantMentorGroupId() != null ? WorkstationStatus.PRE_RESERVED : WorkstationStatus.IDLE);
                 ws.setOccupiedAt(null);
             }
             this.workstationRepository.save(ws);

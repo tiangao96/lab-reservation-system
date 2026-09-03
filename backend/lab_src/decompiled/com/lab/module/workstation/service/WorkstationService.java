@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,15 +86,15 @@ public class WorkstationService {
 
     public List<WorkstationVo> listByLab(String labNanoId, String month) {
         Lab lab = this.requireLab(labNanoId);
-        List<Workstation> workstations = this.workstationRepository.findByLabId(lab.getId());
+        List workstations = this.workstationRepository.findByLabId(lab.getId());
         String currentMonth = YearMonth.now().toString();
         Map<Long, Object[]> rentalInfoByWsId = this.rentalItemRepository.findApprovedRentalInfoByWorkstationIds(workstations.stream().map(BaseEntity::getId).toList(), currentMonth).stream().collect(Collectors.toMap(row -> ((Number)row[0]).longValue(), row -> row, (a, b) -> a));
         if (month == null || month.isBlank()) {
-            return workstations.stream().map(ws -> this.toVo(ws, lab.getNanoId(), ws.getStatus().name(), rentalInfoByWsId.get(ws.getId()))).toList();
+            return workstations.stream().map(ws -> this.toVo(ws, lab.getNanoId(), ws.getStatus().name(), (Object[])rentalInfoByWsId.get(ws.getId()))).toList();
         }
         RentalCalculator.parseMonth((String)month);
-        Set<Long> reservedWsIds = this.rentalItemRepository.findApprovedReservedWorkstationIds(workstations.stream().map(BaseEntity::getId).toList(), month).stream().collect(Collectors.toSet());
-        return workstations.stream().map(ws -> this.toVo(ws, lab.getNanoId(), this.monthStatus(ws, reservedWsIds), rentalInfoByWsId.get(ws.getId()))).toList();
+        Set reservedWsIds = this.rentalItemRepository.findApprovedReservedWorkstationIds(workstations.stream().map(BaseEntity::getId).toList(), month).stream().collect(Collectors.toSet());
+        return workstations.stream().map(ws -> this.toVo(ws, lab.getNanoId(), this.monthStatus(ws, reservedWsIds), (Object[])rentalInfoByWsId.get(ws.getId()))).toList();
     }
 
     private String monthStatus(Workstation ws, Set<Long> reservedWsIds) {
@@ -115,10 +116,10 @@ public class WorkstationService {
             return List.of();
         }
         List<Long> wsIds = seats.stream().map(BaseEntity::getId).toList();
-        Set<Long> conflictingWsIds = this.rentalItemRepository.findConflictingWorkstationIds(wsIds, startMonth, endMonth).stream().collect(Collectors.toSet());
+        Set conflictingWsIds = this.rentalItemRepository.findConflictingWorkstationIds(wsIds, startMonth, endMonth).stream().collect(Collectors.toSet());
         Map<Long, Object[]> rentalInfoByWsId = this.rentalItemRepository.findApprovedRentalInfoByWorkstationIds(wsIds, YearMonth.now().toString()).stream().collect(Collectors.toMap(row -> ((Number)row[0]).longValue(), row -> row, (a, b) -> a));
         return seats.stream().map(ws -> {
-            WorkstationVo vo = this.toVo(ws, lab.getNanoId(), ws.getStatus().name(), rentalInfoByWsId.get(ws.getId()));
+            WorkstationVo vo = this.toVo(ws, lab.getNanoId(), ws.getStatus().name(), (Object[])rentalInfoByWsId.get(ws.getId()));
             String reason = WorkstationService.unrentableReason((Workstation)ws, (boolean)conflictingWsIds.contains(ws.getId()), (String)startMonth);
             vo.setRentable(Boolean.valueOf(reason == null));
             vo.setUnrentableReason(reason);
@@ -141,10 +142,10 @@ public class WorkstationService {
 
     public WorkstationVo getByNanoId(String nanoId) {
         Workstation ws = this.requireWorkstation(nanoId);
-        Lab lab = (Lab)this.labRepository.findById(ws.getLabId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND));
+        Lab lab = (Lab)this.labRepository.findById((Object)ws.getLabId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND));
         String currentMonth = YearMonth.now().toString();
-        List<Object[]> infos = this.rentalItemRepository.findApprovedRentalInfoByWorkstationIds(List.of(ws.getId()), currentMonth);
-        Object[] rentalInfo = infos.isEmpty() ? null : infos.get(0);
+        List infos = this.rentalItemRepository.findApprovedRentalInfoByWorkstationIds(List.of(ws.getId()), currentMonth);
+        Object[] rentalInfo = infos.isEmpty() ? null : (Object[])infos.get(0);
         return this.toVo(ws, lab.getNanoId(), ws.getStatus().name(), rentalInfo);
     }
 
@@ -166,7 +167,7 @@ public class WorkstationService {
         ws.setType(req.getType() != null ? req.getType() : WorkstationType.SEAT);
         this.applyLayout(ws, req);
         ws.setDescription(req.getDescription());
-        ws = (Workstation)this.workstationRepository.save(ws);
+        ws = (Workstation)this.workstationRepository.save((Object)ws);
         return ws.getNanoId();
     }
 
@@ -184,7 +185,7 @@ public class WorkstationService {
         ws.setType(req.getType() != null ? req.getType() : WorkstationType.SEAT);
         this.applyLayout(ws, req);
         ws.setDescription(req.getDescription());
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
     }
 
     @Transactional
@@ -197,7 +198,7 @@ public class WorkstationService {
             throw new BizException(ResultCode.BAD_REQUEST, "\u9884\u5360\u4e2d\u5de5\u4f4d\u4e0d\u53ef\u5220\u9664\uff0c\u8bf7\u5148\u53d6\u6d88\u5de5\u4f4d\u7533\u8bf7");
         }
         ws.setIsDeleted(Integer.valueOf(1));
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
     }
 
     void doReserve(Workstation ws, Long rentalRequestId, Long occupantMentorGroupId) {
@@ -209,7 +210,7 @@ public class WorkstationService {
         }
         ws.setStatus(WorkstationStatus.PRE_RESERVED);
         ws.setOccupantMentorGroupId(occupantMentorGroupId);
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
         this.historyService.startSegment(ws.getId(), OccupancyType.PRE_RESERVED, OccupancySourceType.RENTAL, rentalRequestId, occupantMentorGroupId, null);
     }
 
@@ -223,8 +224,7 @@ public class WorkstationService {
         ws.setStatus(WorkstationStatus.OCCUPIED);
         ws.setCurrentUserId(userId);
         ws.setOccupiedAt(occupyAt);
-        ws.setManualOccupantName(null);
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
         this.historyService.transitionTo(ws.getId(), OccupancyType.OCCUPIED, OccupancySourceType.RENTAL, rentalId != null ? rentalId : this.currentRentalId(ws.getId()), ws.getOccupantMentorGroupId(), userId, occupyAt);
     }
 
@@ -258,8 +258,8 @@ public class WorkstationService {
     }
 
     private String activeRentalStartMonth(Long wsId) {
-        List<Object[]> rows = this.rentalItemRepository.findActiveApprovedRentalByWorkstation(wsId, YearMonth.now().toString());
-        return rows.isEmpty() ? null : (String)(rows.get(0))[1];
+        List rows = this.rentalItemRepository.findActiveApprovedRentalByWorkstation(wsId, YearMonth.now().toString());
+        return rows.isEmpty() ? null : (String)((Object[])rows.get(0))[1];
     }
 
     private static LocalDateTime monthStart(String month) {
@@ -285,12 +285,12 @@ public class WorkstationService {
 
     @Transactional
     public boolean autoReleaseExpiredRental(Long workstationId, Long rentalRequestId) {
-        Workstation ws = (Workstation)this.workstationRepository.findById(workstationId).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728: " + workstationId));
+        Workstation ws = (Workstation)this.workstationRepository.findById((Object)workstationId).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728: " + workstationId));
         WorkstationOccupancyHistoryService.OpenRentalInfo open = this.historyService.openRentalInfo(ws.getId());
         if (open == null || !rentalRequestId.equals(open.rentalId())) {
             return false;
         }
-        WorkstationRentalRequest rental = (WorkstationRentalRequest)this.rentalRequestRepository.findById(rentalRequestId).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u6708\u79df\u7533\u8bf7\u4e0d\u5b58\u5728: " + rentalRequestId));
+        WorkstationRentalRequest rental = (WorkstationRentalRequest)this.rentalRequestRepository.findById((Object)rentalRequestId).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u6708\u79df\u7533\u8bf7\u4e0d\u5b58\u5728: " + rentalRequestId));
         int[] ym = RentalCalculator.parseMonth((String)rental.getEndMonth());
         LocalDateTime releasedAt = LocalDateTime.of(ym[0], ym[1], 1, 0, 0).plusMonths(1L).minusSeconds(1L);
         this.historyService.closeCurrentAt(ws.getId(), releasedAt);
@@ -311,21 +311,21 @@ public class WorkstationService {
     }
 
     private void chainNextRental(Workstation ws, String fromMonth, Long excludeRentalId) {
-        List<Object[]> rows = excludeRentalId != null ? this.rentalItemRepository.findNextApprovedRentalByWorkstation(ws.getId(), fromMonth, excludeRentalId) : this.rentalItemRepository.findActiveApprovedRentalByWorkstation(ws.getId(), fromMonth);
+        List rows = excludeRentalId != null ? this.rentalItemRepository.findNextApprovedRentalByWorkstation(ws.getId(), fromMonth, excludeRentalId) : this.rentalItemRepository.findActiveApprovedRentalByWorkstation(ws.getId(), fromMonth);
         ws.setCurrentUserId(null);
         ws.setOccupiedAt(null);
         if (rows.isEmpty()) {
             ws.setStatus(WorkstationStatus.IDLE);
             ws.setOccupantMentorGroupId(null);
-            this.workstationRepository.save(ws);
+            this.workstationRepository.save((Object)ws);
             return;
         }
-        Object[] row = rows.get(0);
+        Object[] row = (Object[])rows.get(0);
         Long rentalId = ((Number)row[0]).longValue();
         Long groupId = row[2] == null ? null : Long.valueOf(((Number)row[2]).longValue());
         ws.setStatus(WorkstationStatus.PRE_RESERVED);
         ws.setOccupantMentorGroupId(groupId);
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
         this.historyService.startSegment(ws.getId(), OccupancyType.PRE_RESERVED, OccupancySourceType.RENTAL, rentalId, groupId, null);
     }
 
@@ -340,6 +340,27 @@ public class WorkstationService {
         boolean canForce = this.permissionService.has("workstation:manage");
         if (!(canForce || userId != null && userId.equals(ws.getCurrentUserId()))) {
             throw new BizException(ResultCode.NO_PERMISSION, "\u4ec5\u5360\u7528\u8005\u672c\u4eba\u6216\u7ba1\u7406\u5458\u53ef\u91ca\u653e");
+        }
+        if (endMonth == null || endMonth.isBlank()) {
+            releasedAt = LocalDateTime.now();
+        } else {
+            int[] ym = RentalCalculator.parseMonth((String)endMonth);
+            releasedAt = LocalDateTime.of(ym[0], ym[1], 1, 0, 0).plusMonths(1L).minusSeconds(1L);
+        }
+        WorkstationOccupancyHistoryService.OpenRentalInfo openRental = this.historyService.openRentalInfo(ws.getId());
+        this.historyService.closeCurrentAt(ws.getId(), releasedAt);
+        if (openRental != null) {
+            this.shrinkRentalItem(openRental.rentalId(), ws.getId(), YearMonth.from(releasedAt).toString());
+        }
+        this.chainNextRental(ws, YearMonth.from(releasedAt).toString(), openRental != null ? openRental.rentalId() : null);
+    }
+
+    @Transactional
+    public void releaseByJob(String nanoId, String endMonth) {
+        LocalDateTime releasedAt;
+        Workstation ws = this.requireWorkstation(nanoId);
+        if (ws.getStatus() != WorkstationStatus.OCCUPIED && ws.getStatus() != WorkstationStatus.PRE_RESERVED) {
+            return;
         }
         if (endMonth == null || endMonth.isBlank()) {
             releasedAt = LocalDateTime.now();
@@ -380,7 +401,7 @@ public class WorkstationService {
             ws.setOccupantMentorGroupId(null);
         }
         ws.setStatus(target);
-        this.workstationRepository.save(ws);
+        this.workstationRepository.save((Object)ws);
         if (current == WorkstationStatus.OCCUPIED || current == WorkstationStatus.PRE_RESERVED) {
             WorkstationOccupancyHistoryService.OpenRentalInfo openRental = this.historyService.openRentalInfo(ws.getId());
             this.historyService.closeCurrent(ws.getId());
@@ -390,26 +411,8 @@ public class WorkstationService {
         }
     }
 
-    @Transactional
-    public void setMentorGroup(String nanoId, String mentorGroupNanoId) {
-        Workstation ws = this.requireWorkstation(nanoId);
-        if (ws.getStatus() == WorkstationStatus.OCCUPIED) {
-            throw new BizException(ResultCode.BAD_REQUEST, "\u5de5\u4f4d\u5df2\u88ab\u5b66\u751f\u5360\u7528\uff0c\u8bf7\u5148\u91ca\u653e\u518d\u4fee\u6539\u5bfc\u5e08");
-        }
-        if (mentorGroupNanoId == null || mentorGroupNanoId.isBlank()) {
-            ws.setOccupantMentorGroupId(null);
-        } else {
-            Long groupId = this.mentorGroupResolver.resolveMentorGroupId(mentorGroupNanoId);
-            if (groupId == null) {
-                throw new BizException(ResultCode.BAD_REQUEST, "\u5bfc\u5e08\u7ec4\u4e0d\u5b58\u5728");
-            }
-            ws.setOccupantMentorGroupId(groupId);
-        }
-        this.workstationRepository.save(ws);
-    }
-
     private void shrinkRentalItem(Long rentalRequestId, Long workstationId, String endMonth) {
-        this.rentalRequestRepository.findById(rentalRequestId).ifPresent(rental -> this.rentalItemRepository.findByRentalRequestId(rentalRequestId).stream().filter(i -> workstationId.equals(i.getWorkstationId())).filter(i -> endMonth.compareTo(i.getEndMonth() != null ? i.getEndMonth() : rental.getEndMonth()) < 0).findFirst().ifPresent(i -> {
+        this.rentalRequestRepository.findById((Object)rentalRequestId).ifPresent(rental -> this.rentalItemRepository.findByRentalRequestId(rentalRequestId).stream().filter(i -> workstationId.equals(i.getWorkstationId())).filter(i -> endMonth.compareTo(i.getEndMonth() != null ? i.getEndMonth() : rental.getEndMonth()) < 0).findFirst().ifPresent(i -> {
             i.setEndMonth(endMonth);
             this.rentalItemRepository.save(i);
         }));
@@ -470,24 +473,8 @@ public class WorkstationService {
         vo.setType(ws.getType() != null ? ws.getType().name() : null);
         vo.setOccupiedAt(ws.getOccupiedAt());
         vo.setCurrentUserNanoId(this.userIdResolver.resolveNanoId(ws.getCurrentUserId()));
-        String currentUserName = this.userIdResolver.resolveName(ws.getCurrentUserId());
-        if (currentUserName == null) {
-            currentUserName = ws.getManualOccupantName();
-        }
-        vo.setCurrentUserName(currentUserName);
-        String resolvedMgName = this.mentorGroupResolver.resolveName(ws.getOccupantMentorGroupId());
-        if (resolvedMgName == null) {
-            resolvedMgName = this.workstationRepository.findMentorGroupName(ws.getId());
-        }
-        vo.setOccupantMentorGroupName(resolvedMgName);
-        vo.setOccupantMentorGroupNanoId(this.mentorGroupResolver.resolveNanoId(ws.getOccupantMentorGroupId()));
-        vo.setGradeName(ws.getGradeName());
-        vo.setDegreeName(ws.getDegree());
-        String exp = ws.getExpectedReleaseMonth();
-        if (exp == null) {
-            exp = this.computeExpectedRelease(ws.getGradeName(), ws.getDegree());
-        }
-        vo.setExpectedReleaseMonth(exp);
+        vo.setCurrentUserName(this.userIdResolver.resolveName(ws.getCurrentUserId()));
+        vo.setOccupantMentorGroupName(this.mentorGroupResolver.resolveName(ws.getOccupantMentorGroupId()));
         if (rentalInfo != null) {
             vo.setReservedStartMonth((String)rentalInfo[2]);
             vo.setReservedEndMonth((String)rentalInfo[3]);
@@ -502,39 +489,8 @@ public class WorkstationService {
         return vo;
     }
 
-    public void updateGradeInfo(String nanoId, String gradeName, String degree) {
-        Workstation ws = this.workstationRepository.findByNanoId(nanoId);
-        if (ws == null) {
-            throw new com.lab.common.exception.BizException(com.lab.common.api.ResultCode.RESOURCE_NOT_FOUND);
-        }
-        String g = (gradeName == null || gradeName.trim().isEmpty()) ? null : gradeName.trim();
-        String d = (degree == null || degree.trim().isEmpty()) ? null : degree.trim();
-        ws.setGradeName(g);
-        ws.setDegree(d);
-        ws.setExpectedReleaseMonth(g == null ? null : this.computeExpectedRelease(g, d));
-        this.workstationRepository.save(ws);
-    }
-
-    private String computeExpectedRelease(String gradeName, String degree) {
-        if (gradeName == null) {
-            return null;
-        }
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(20\\d{2}|\\d{2})").matcher(gradeName);
-        if (!m.find()) {
-            return null;
-        }
-        int year = Integer.parseInt(m.group(1));
-        if (year < 100) {
-            year += 2000;
-        }
-        if (year < 2000 || year > 2100) {
-            return null;
-        }
-        int years = degree != null && degree.contains("\u672c\u79d1") ? 4 : 3;
-        return (year + years) + "-06";
-    }
-
-        public WorkstationService(WorkstationRepository workstationRepository, LabRepository labRepository, PermissionService permissionService, UserIdResolver userIdResolver, MentorGroupResolver mentorGroupResolver, WorkstationRentalRequestItemRepository rentalItemRepository, WorkstationRentalRequestRepository rentalRequestRepository, WorkstationOccupancyHistoryService historyService) {
+    @Generated
+    public WorkstationService(WorkstationRepository workstationRepository, LabRepository labRepository, PermissionService permissionService, UserIdResolver userIdResolver, MentorGroupResolver mentorGroupResolver, WorkstationRentalRequestItemRepository rentalItemRepository, WorkstationRentalRequestRepository rentalRequestRepository, WorkstationOccupancyHistoryService historyService) {
         this.workstationRepository = workstationRepository;
         this.labRepository = labRepository;
         this.permissionService = permissionService;
