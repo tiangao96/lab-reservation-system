@@ -38,10 +38,13 @@ function _fj(u,at){at=at||0;return new Promise(function(res,rej){var h={'Content
 function _numCmp(a,b){var ma=a.match(/(\d+)/g),mb=b.match(/(\d+)/g);if(ma&&mb&&ma.length&&mb.length){var na=parseInt(ma[0],10),nb=parseInt(mb[0],10);if(na!==nb)return na-nb}return a<b?-1:a>b?1:0}
 /* --- 状态 --- */
 var _st={labs:null,byM:null,ok:false,loading:false,mentor:''};
+function _urlMentor(){try{var h=location.hash||'';var i=h.indexOf('?');if(i<0)return '';var q=h.slice(i+1);
+try{return new URLSearchParams(q).get('mentorName')||''}catch(e){var m2=q.match(/[?&]mentorName=([^&]*)/);return m2?decodeURIComponent(m2[1]||''):''}}catch(e){return ''}}
+_st.mentor=_urlMentor();
 /* --- 数据 --- */
-function _load(){
-  if(_st.ok){_fillSelect();if(_st.mentor)_enter();return Promise.resolve()}
-  if(_st.loading){return _st.promise||Promise.resolve()}
+function _load(force){
+  if(_st.ok&&!force){_fillSelect();if(_st.mentor)_enter();return Promise.resolve()}
+  if(_st.loading&&!force){return _st.promise||Promise.resolve()}
   _st.loading=true;
   var byM={},labs=[];
   var p=_fj('/api/labs').then(function(lb){
@@ -75,28 +78,96 @@ function _load(){
   _st.promise=p;
   return p;
 }
-/* --- 导师下拉 --- */
-var _selEl=null;
-function _fillSelect(){
-  if(!_selEl)return;
-  var names=Object.keys(_st.byM).sort(function(a,b){return a.localeCompare(b,'zh')});
-  var old=_selEl.value;
-  _selEl.innerHTML='<option value="">导师管理：全部</option>'+names.map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>'}).join('');
-  if(old)_selEl.value=old;
+/* --- 导师下拉(可输入查询 + 名单动态含新增老师) --- */
+var _selEl=null,_inp=null,_dlEl=null,_gts=0,_grpNames=null;
+function _collectGrp(nodes,out){
+  (nodes||[]).forEach(function(x){
+    if(!x||!x.name)return;
+    var lv=x.level||0;
+    if(lv>=2&&(!x.children||!x.children.length))out.push(x.name);
+    _collectGrp(x.children||[],out);
+  });
 }
+function _fetchGroups(){
+  if(Date.now()-_gts<60000)return Promise.resolve();
+  _gts=Date.now();
+  return _fj('/api/mentor-groups').then(function(list){
+    var out=[];_collectGrp(list,out);
+    if(out.length){_grpNames=out;_fillDl()}
+  }).catch(function(){});
+}
+function _allNames(){
+  var set={};
+  (_grpNames||[]).forEach(function(n){set[n]=1});
+  Object.keys(_st.byM||{}).forEach(function(n){set[n]=1});
+  return Object.keys(set).sort(function(a,b){return a.localeCompare(b,'zh')});
+}
+function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function _fillDl(){
+  if(!_dlEl)return;
+  var names=_allNames();
+  _dlEl.innerHTML=names.map(function(n){return '<option value="'+_esc(n)+'">'}).join('');
+  return names;
+}
+function _showState(){
+  if(!_inp)return;
+  var m=_st.mentor||'';
+  _inp.value=m;
+  _inp.placeholder=m?'':'导师管理：全部';
+}
+function _commit(v){
+  v=v||'';
+  var names=_allNames();
+  var exact=names.indexOf(v)>=0;
+  var hits=[];
+  if(v&&!exact){for(var i=0;i<names.length;i++){if(names[i].indexOf(v)>=0)hits.push(names[i])}}
+  if(v&&!exact&&hits.length===1){v=hits[0];exact=true}
+  if(v&&!exact)return; /* 多匹配/无匹配:保持输入等待继续 */
+  _st.mentor=v;
+  _showState();
+  if(v){
+    if(_st.ok&&_st.byM&&_st.byM[v]){if(_box){_render()}else{_enter()}}
+    else{_load(true)}
+  }else{_exit()}
+}
+function _fillSelect(){_fillDl();_showState()}
 function _ensureSel(row){
   if(!row)return false;
-  if(_qsa('select.__mg-sel',row).length)return true;
-  var s=_D2('select');
-  s.className='__mg-sel';
-  s.style.cssText='height:32px;border:1px solid #dcdfe6;border-radius:4px;padding:0 10px;font-size:14px;background:#fff;color:#333;outline:none;min-width:180px;max-width:220px;cursor:pointer';
-  s.innerHTML='<option value="">导师管理：全部</option>';
-  if(_st.mentor)s.value=_st.mentor;
-  s.addEventListener('change',function(){var v=s.value;_st.mentor=v;if(v){_load()}else{_exit()}});
-  if(_st.mentor&&_st.ok){_fillSelect();setTimeout(_enter,50)}
+  if(_qsa('.__mg-sel',row).length)return true;
+  var w=_D2('div');
+  w.className='__mg-sel';
+  w.style.cssText='position:relative;display:inline-flex;align-items:center;width:220px;height:32px;border:1px solid #dcdfe6;border-radius:4px;background:#fff;box-sizing:border-box;flex:0 0 auto';
+  var inp=_D2('input');
+  inp.className='__mg-inp';
+  inp.type='text';
+  inp.setAttribute('autocomplete','off');
+  inp.placeholder='导师管理：全部';
+  inp.style.cssText='flex:1;min-width:0;height:100%;border:none;outline:none;padding:0 26px 0 10px;font-size:14px;color:#333;background:transparent;box-sizing:border-box';
+  var dl=_D2('datalist');
+  dl.id='__mgdl'+Math.floor(Math.random()*1e6);
+  inp.setAttribute('list',dl.id);
+  var caret=_D2('span');
+  caret.style.cssText='position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#a8abb2;font-size:12px;pointer-events:none';
+  caret.textContent='▾';
+  inp.addEventListener('focus',function(){w.style.borderColor='#409eff';_fetchGroups()});
+  inp.addEventListener('blur',function(){w.style.borderColor='#dcdfe6';setTimeout(function(){
+    if(!_inp)return;
+    var v=_inp.value.trim();
+    if(v&&_allNames().indexOf(v)<0){_showState()}
+  },200)});
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();_commit(_inp.value.trim())}
+    else if(e.key==='Escape'){_commit('')}
+  });
+  inp.addEventListener('change',function(){
+    var v=_inp.value.trim();
+    if(v&&_allNames().indexOf(v)>=0)_commit(v);
+  });
+  w.appendChild(inp);w.appendChild(dl);w.appendChild(caret);
   var lab=_qs('.el-select',row);
-  if(lab&&lab.parentElement===row){row.insertBefore(s,lab.nextSibling)}else{row.appendChild(s)}
-  _selEl=s;
+  if(lab&&lab.parentElement===row){row.insertBefore(w,lab.nextSibling)}else{row.appendChild(w)}
+  _selEl=w;_inp=inp;_dlEl=dl;
+  if(_st.mentor){_showState();if(!_st.ok){_load()}else if(_box){_render()}else{_enter()}}
   return true;
 }
 function _D2(tag){return document.createElement(tag)}
@@ -183,12 +254,19 @@ function _render(){
   });
   html+='</div>';
   _box.innerHTML=html;
-  _qsa('.__mg-back',_box).forEach(function(b){b.addEventListener('click',function(){_st.mentor='';if(_selEl)_selEl.value='';_exit()})});
+  _qsa('.__mg-back',_box).forEach(function(b){b.addEventListener('click',function(){_st.mentor='';_showState();_exit()})});
   _qsa('.__mg-go',_box).forEach(function(b){b.addEventListener('click',function(){var n=b.getAttribute('data-n'),m2=b.getAttribute('data-m');if(!n)return;location.hash='#/lab/workstations/'+n+'?m='+encodeURIComponent(m2||'')})});
 }
 /* --- 注入/挂载 --- */
 var _loadedOnce=false;
+function _isMgPage(){var h=location.hash||'';return h.indexOf('#/lab/workstation')===0&&(h.length===17||h.charAt(17)==='?'||h.charAt(17)==='#')}
+function _dropSel(){try{var _sels=_qsa('.__mg-sel');for(var _i=0;_i<_sels.length;_i++){var _p=_sels[_i].parentNode;if(_p)_p.removeChild(_sels[_i])}}catch(e){}}
 function _tryInject(){
+  if(!_isMgPage()){_dropSel();return false}
+  if(_box&&!_box.isConnected){_box=null}
+  if(_cardA&&!_cardA.isConnected){_cardA=null}
+  if(_cardB&&!_cardB.isConnected){_cardB=null}
+  if(_selEl&&!_selEl.isConnected){_selEl=null}
   var row=_qs('div.flex.flex-1.flex-wrap.items-center.gap-2');
   if(!row)return false;
   if(!_qs('.el-select',row))return false;
@@ -201,7 +279,141 @@ function _watch(){
   try{
     new MutationObserver(function(){_tryInject()}).observe(document.body,{childList:true,subtree:true});
   }catch(e){}
-  setInterval(function(){if(!_qs('select.__mg-sel'))_tryInject()},1200);
+  setInterval(function(){if(!_isMgPage()){_dropSel();return}if(!_qs('.__mg-sel'))_tryInject()},1200);
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_watch)}else{_watch()}
+window.addEventListener('hashchange',function(){try{
+  var m=_urlMentor();
+  if(m&&m!==_st.mentor){_st.mentor=m;_showState()
+    if(_st.ok){if(_box){_render()}else{_enter()}}else{_load()}}
+}catch(e){console.log('[MGV-ERR]',e&&e.message)}});
 }catch(_e){console.log('[MGV-ERR]',_e&&_e.message)}})();
+;(function(){try{
+if(window.__wrn)return;window.__wrn=1;
+/* === 工位管理卡片:已释放备注(0908 v2) ===
+   仅对「当前空闲」且历史上被释放过(占用历史存在 releasedAt)的卡,
+   卡片信息区追加一行「YYYY年M月已释放」 */
+function _qsa(s,r){r=r||document;try{return Array.prototype.slice.call(r.querySelectorAll(s))}catch(e){return []}}
+function _tok(){try{return window.__mgTok||''}catch(e){return ''}}
+function _waitTok(cb,tries){tries=tries||0;if(_tok()){cb();return}if(tries>26){cb();return}setTimeout(function(){_waitTok(cb,tries+1)},300)}
+function _fj2(u,at){at=at||0;return new Promise(function(res,rej){var h={'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'};var tk=_tok();if(tk)h['Authorization']=tk;fetch(u,{headers:h,credentials:'same-origin'}).then(function(r){
+  if(r.status===401&&at<6){setTimeout(function(){_fj2(u,at+1).then(res,rej)},600+at*500);return}
+  if(!r.ok){rej(new Error('HTTP'+r.status));return}
+  r.json().then(function(j){if(j&&j.data!=null){res(j.data)}else{rej(new Error('bad'))}}).catch(rej)
+}).catch(rej)})}
+function _mon(dt){var s=String(dt||'');var m=s.match(/^(\d{4})-(\d{2})/);if(m)return m[1]+'年'+parseInt(m[2],10)+'月';var d=new Date(s);if(!isNaN(d.getTime()))return d.getFullYear()+'年'+(d.getMonth()+1)+'月';return ''}
+var _cache=null; /* {labNanoId,ts,map:{code:txt}} */
+var _pending=null;
+function _listBox(){
+  var box=null;
+  _qsa('div.bg-card.flex.min-h-0.flex-1.flex-col.rounded-md').forEach(function(c){if(!box&&(_qsa('.el-pagination',c).length||_qsa('.grid',c).length))box=c});
+  return box||null;
+}
+function _visible(box){try{return !!(box&&(box.offsetWidth||box.offsetHeight||box.getClientRects().length))}catch(e){return false}}
+function _cards(){
+  var box=_listBox();
+  if(!_visible(box))return [];
+  return _qsa('div.rounded-lg.border.border-gray-200',box).filter(function(d){
+    var t=(d.innerText||'');
+    return t.indexOf('占用组')>=0||t.indexOf('空闲工位')>=0||t.indexOf('期间')>=0||t.indexOf('预计释放')>=0||t.indexOf('占领者')>=0;
+  });
+}
+function _codeOf(card){
+  var t=(card.innerText||'').trim();
+  var m=t.match(/^([A-Za-z]{1,6}\d{1,4}[A-Za-z]?-\d{1,4})/);
+  return m?m[1]:'';
+}
+function _curSets(){
+  var all={},idle={};
+  _cards().forEach(function(c){
+    var cd=_codeOf(c);
+    if(!cd)return;
+    all[cd]=1;
+    if((c.innerText||'').indexOf('空闲工位')>=0)idle[cd]=1;
+  });
+  return {all:all,idle:idle};
+}
+function _onList(u,data){
+  try{
+    var q=String(u||'').split('?')[1]||'';
+    var lab='';
+    try{lab=new URLSearchParams(q).get('labNanoId')||''}catch(e){var mm=q.match(/labNanoId=([^&]*)/);lab=mm?decodeURIComponent(mm[1]||''):''}
+    if(!lab||!data||!data.length)return;
+    var arr=(data||[]).filter(function(w){return w&&String(w.type||'').toUpperCase()==='SEAT'&&w.code&&w.nanoId});
+    if(!arr.length)return;
+    setTimeout(function(){
+      try{
+        var sets=_curSets();
+        /* 只查「当前可视且空闲」的卡 */
+        var need=arr.filter(function(w){return sets.all[w.code]&&sets.idle[w.code]});
+        if(!need.length)return;
+        var now=Date.now();
+        if(_cache&&_cache.labNanoId===lab&&now-_cache.ts<2000)return;
+        if(_pending&&_pending.lab===lab&&now-_pending.ts<2000)return;
+        _pending={lab:lab,ts:now};
+        _waitTok(function(){
+          var map={};
+          var qs=need.map(function(w){
+            return _fj2('/api/workstations/'+encodeURIComponent(w.nanoId)+'/occupancy-history').then(function(hs){
+              var hs2=hs||[];
+              for(var i=0;i<hs2.length;i++){var hh=hs2[i];if(hh&&hh.releasedAt){var mo=_mon(hh.releasedAt);if(mo){map[w.code]=mo+'已释放'}break}}
+            }).catch(function(){});
+          });
+          Promise.all(qs).then(function(){
+            if(_pending&&_pending.lab!==lab)return;
+            _pending=null;
+            _cache={labNanoId:lab,ts:Date.now(),map:map};
+            _apply();
+          });
+        });
+      }catch(e){}
+    },700);
+  }catch(e){}
+}
+function _apply(){
+  if(!_cache)return;
+  var map=_cache.map||{};
+  var cards=_cards();
+  for(var i=0;i<cards.length;i++){
+    var c=cards[i];
+    _qsa('.__wrn-note',c).forEach(function(x){try{x.remove()}catch(e){}});
+    if((c.innerText||'').indexOf('空闲工位')<0)continue; /* 仅空闲卡 */
+    var cd=_codeOf(c);
+    var txt=map[cd];
+    if(!txt)continue;
+    var info=null;
+    var kids=c.children;
+    for(var k=0;k<kids.length;k++){var kd=kids[k];var kt=(kd.innerText||'');if(kt.indexOf('占用组：')>=0||kt.indexOf('空闲工位')>=0||kt.indexOf('期间：')>=0||kt.indexOf('预计释放：')>=0||kt.indexOf('占领者：')>=0){info=kd;break}}
+    if(!info)info=c;
+    var n=document.createElement('div');
+    n.className='__wrn-note';
+    n.style.cssText='color:#9ca3af;font-size:12px;line-height:1.5;margin-top:1px';
+    n.textContent=txt;
+    info.appendChild(n);
+  }
+}
+/* XHR 响应捕获: /api/workstations?labNanoId= */
+try{
+  var _os=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send=function(){
+    var self=this;
+    try{self.addEventListener('load',function(){
+      try{
+        var u=self.__mgU||'';
+        if(u.indexOf('/api/workstations?')>=0&&u.indexOf('labNanoId=')>=0){
+          var j=null;
+          try{j=JSON.parse(self.responseText||'')}catch(e){}
+          if(j&&j.data&&Array.isArray(j.data))_onList(u,j.data);
+        }
+      }catch(e){}
+    });}catch(e){}
+    return _os.apply(this,arguments);
+  };
+}catch(e){}
+/* 观察/轮询标注 */
+var _deb=null;
+try{
+  new MutationObserver(function(){if(_deb)return;_deb=setTimeout(function(){_deb=null;try{_apply()}catch(e){}},500)}).observe(document.body,{childList:true,subtree:true});
+}catch(e){}
+setInterval(function(){try{_apply()}catch(e){}},3000);
+}catch(_e){try{console.log('[WRN]',_e&&_e.message)}catch(x){}}})();
