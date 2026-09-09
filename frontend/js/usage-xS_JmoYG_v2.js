@@ -905,6 +905,31 @@ function _hook(){
     return _res;
   };
 }
+function _fitDom(){try{
+  var sc=null,cs=Array.prototype.slice.call(document.querySelectorAll('div'));
+  for(var i=0;i<cs.length;i++){var e=cs[i];if(e.clientHeight>300&&String(e.className).indexOf('h-full p-4')>=0){sc=e;break}}
+  if(!sc)return;
+  var t=null,ts=Array.prototype.slice.call(document.querySelectorAll('.el-table'));
+  for(var j=0;j<ts.length;j++){var tx=ts[j].innerText||'';if(tx.indexOf('导师组')>=0&&tx.indexOf('占用面积')>=0&&tx.indexOf('labCode')<0&&getComputedStyle(ts[j]).display!=='none'){t=ts[j];break}}
+  if(!t)return;
+  if(String(sc.className).indexOf('uljx-fit')<0)sc.className+=' uljx-fit';
+  var sid='uljx-fit-css';
+  if(!document.getElementById(sid)){
+    var st=document.createElement('style');st.id=sid;
+    st.textContent=['.uljx-fit{display:flex;flex-direction:column;min-height:0}',
+      '.uljx-fit>.bg-card{flex:0 0 auto}',
+      '.uljx-fit>.el-table{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:12px}',
+      '.uljx-fit>.el-table .el-table__inner-wrapper{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}',
+      '.uljx-fit>.el-table .el-table__header-wrapper{flex:0 0 auto}',
+      '.uljx-fit>.el-table .el-table__body-wrapper{flex:1 1 auto;min-height:0;overflow:hidden}',
+      '.uljx-fit>.el-table .el-table__body-wrapper .el-scrollbar{height:100%;display:block}',
+      '.uljx-fit>.el-table .el-table__body-wrapper .el-scrollbar__wrap{height:100%!important;overflow:auto!important;scrollbar-width:thin!important;scrollbar-color:rgba(148,163,184,.55) transparent!important}',
+      '.uljx-fit>.el-table .el-table__body-wrapper .el-scrollbar__wrap::-webkit-scrollbar{width:9px;height:9px}',
+      '.uljx-fit>.el-table .el-table__body-wrapper .el-scrollbar__wrap::-webkit-scrollbar-thumb{background:rgba(148,163,184,.55);border-radius:5px;border:2px solid transparent;background-clip:content-box}',
+      '.uljx-fit>.el-table .el-table__body-wrapper .el-scrollbar__wrap::-webkit-scrollbar-track{background:transparent}'].join('\n');
+    document.head.appendChild(st);
+  }
+}catch(e){}}
 function _fixDom(){
   try{
     var t=null,ts=Array.prototype.slice.call(document.querySelectorAll('.el-table'));
@@ -933,7 +958,7 @@ function _fixDom(){
     });
   }catch(e){}
 }
-setInterval(function(){try{_hook()}catch(e){}try{_fixDom()}catch(e){}try{var _sl=document.querySelector('select.__ul-lab'),_sm=document.querySelector('select.__ul-men');var _cl=_sl?(_sl.value||''):'',_cm=_sm?(_sm.value||''):'';var _oldLab=window.__ulLab||'',_oldMen=window.__ulMen||'';var _need=false;if(_cl!==_oldLab){window.__ulLab=_cl;if(_oldLab&&!_cl)_need=true}if(_cm!==_oldMen){window.__ulMen=_cm;if(_oldMen&&!_cm)_need=true}if(_need){setTimeout(function(){try{var _bs=document.querySelectorAll('button');for(var _i=0;_i<_bs.length;_i++){if((_bs[_i].innerText||'').trim()==='\u641c\u7d22'){_bs[_i].click();break}}}catch(e){}},500);}}catch(e){}try{_loadLabs()}catch(e){}},500);
+setInterval(function(){try{_hook()}catch(e){}try{_fixDom()}catch(e){}try{_fitDom()}catch(e){}try{var _sl=document.querySelector('select.__ul-lab'),_sm=document.querySelector('select.__ul-men');var _cl=_sl?(_sl.value||''):'',_cm=_sm?(_sm.value||''):'';var _oldLab=window.__ulLab||'',_oldMen=window.__ulMen||'';var _need=false;if(_cl!==_oldLab){window.__ulLab=_cl;if(_oldLab&&!_cl)_need=true}if(_cm!==_oldMen){window.__ulMen=_cm;if(_oldMen&&!_cm)_need=true}if(_need){setTimeout(function(){try{var _bs=document.querySelectorAll('button');for(var _i=0;_i<_bs.length;_i++){if((_bs[_i].innerText||'').trim()==='\u641c\u7d22'){_bs[_i].click();break}}}catch(e){}},500);}}catch(e){}try{_loadLabs()}catch(e){}},500);
 try{_hook()}catch(e){}
 setTimeout(function(){try{_loadLabs()}catch(e){}},1500);
 }catch(_e){console.log('[ULJX-ERR]',_e&&_e.message)}})();
