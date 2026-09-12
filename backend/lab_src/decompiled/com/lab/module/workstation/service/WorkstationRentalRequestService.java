@@ -53,10 +53,12 @@ import com.lab.module.workstation.dto.StudentUsageItemVo;
 import com.lab.module.workstation.entity.Lab;
 import com.lab.module.workstation.entity.RentalRequestStatus;
 import com.lab.module.workstation.entity.OccupancySourceType;
+import com.lab.module.workstation.entity.OccupancyType;
 import com.lab.module.workstation.entity.Workstation;
 import com.lab.module.workstation.entity.WorkstationOccupancyHistory;
 import com.lab.module.workstation.entity.WorkstationRentalRequest;
 import com.lab.module.workstation.entity.WorkstationRentalRequestItem;
+import com.lab.module.workstation.entity.WorkstationStatus;
 import com.lab.module.workstation.entity.WorkstationType;
 import com.lab.module.workstation.repository.LabRepository;
 import com.lab.module.workstation.repository.WorkstationOccupancyHistoryRepository;
@@ -93,14 +95,19 @@ public class WorkstationRentalRequestService {
     private final MentorGroupResolver mentorGroupResolver;
     private final PermissionService permissionService;
     private final WorkstationService workstationService;
+    private final WorkstationOccupancyHistoryService historyService;
 
     @Transactional
     public String create(String labNanoId, RentalRequestCreateRequest req) {
         Lab lab = this.requireLab(labNanoId != null ? labNanoId : req.getLabNanoId());
         BigDecimal workstationArea = RentalCalculator.workstationArea((BigDecimal)lab.getArea(), (Integer)lab.getCapacity());
-        Long mentorGroupId = this.mentorGroupResolver.resolveMentorGroupId(req.getMentorGroupNanoId());
-        if (mentorGroupId == null) {
-            throw new BizException(ResultCode.BAD_REQUEST, "\u7533\u8bf7\u5bfc\u5e08\u7ec4\u4e0d\u5b58\u5728: " + req.getMentorGroupNanoId());
+        String mgNanoId = req.getMentorGroupNanoId();
+        Long mentorGroupId = null;
+        if (mgNanoId != null && !mgNanoId.isBlank()) {
+            mentorGroupId = this.mentorGroupResolver.resolveMentorGroupId(mgNanoId);
+            if (mentorGroupId == null) {
+                throw new BizException(ResultCode.BAD_REQUEST, "\u7533\u8bf7\u5bfc\u5e08\u7ec4\u4e0d\u5b58\u5728: " + mgNanoId);
+            }
         }
         RentalCalculator.parseMonth((String)req.getStartMonth());
         RentalCalculator.parseMonth((String)req.getEndMonth());
@@ -157,9 +164,27 @@ public class WorkstationRentalRequestService {
         r.setApproverUserId(SecurityContextUtil.currentUserId());
         r.setApprovedAt(LocalDateTime.now());
         this.requestRepository.save(r);
-        for (WorkstationRentalRequestItem item : items) {
-            Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
-            this.workstationService.doReserve(ws, r.getId(), r.getRequesterMentorGroupId());
+        WorkstationRentalRequestService.StudentInfo studentInfo = WorkstationRentalRequestService.parseStudentInfo(r.getReason());
+        if (studentInfo != null) {
+            for (WorkstationRentalRequestItem item : items) {
+                Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
+                boolean occByStudent = ws.getCurrentUserId() != null || (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank());
+                if (ws.getStatus() != WorkstationStatus.IDLE && !(ws.getStatus() == WorkstationStatus.PRE_RESERVED && !occByStudent)) {
+                    throw new BizException(ResultCode.BAD_REQUEST, "\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u5360\u7528: " + ws.getCode());
+                }
+                ws.setStatus(WorkstationStatus.OCCUPIED);
+                ws.setOccupantMentorGroupId(r.getRequesterMentorGroupId());
+                if (studentInfo.name != null && !studentInfo.name.isBlank()) {
+                    ws.setManualOccupantName(studentInfo.name);
+                }
+                this.workstationRepository.save(ws);
+                this.historyService.transitionTo(ws.getId(), OccupancyType.OCCUPIED, OccupancySourceType.RENTAL, r.getId(), r.getRequesterMentorGroupId(), null, LocalDateTime.now());
+            }
+        } else {
+            for (WorkstationRentalRequestItem item : items) {
+                Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
+                this.workstationService.doReserve(ws, r.getId(), r.getRequesterMentorGroupId());
+            }
         }
     }
 
@@ -196,9 +221,24 @@ public class WorkstationRentalRequestService {
                 throw new BizException(ResultCode.NO_PERMISSION, "\u5df2\u901a\u8fc7\u7684\u7533\u8bf7\u4ec5\u7ba1\u7406\u5458\u53ef\u53d6\u6d88");
             }
             List<WorkstationRentalRequestItem> items = this.itemRepository.findByRentalRequestId(r.getId());
-            for (WorkstationRentalRequestItem item : items) {
-                Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
-                this.workstationService.cancelReserve(ws, r.getId());
+            WorkstationRentalRequestService.StudentInfo studentInfo = WorkstationRentalRequestService.parseStudentInfo(r.getReason());
+            if (studentInfo != null) {
+                for (WorkstationRentalRequestItem item : items) {
+                    Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
+                    WorkstationOccupancyHistoryService.OpenRentalInfo open = this.historyService.openRentalInfo(ws.getId());
+                    if (open != null && r.getId().equals(open.rentalId())) {
+                        this.historyService.closeCurrentAt(ws.getId(), LocalDateTime.now());
+                    }
+                    ws.setStatus(WorkstationStatus.IDLE);
+                    ws.setOccupantMentorGroupId(null);
+                    ws.setManualOccupantName(null);
+                    this.workstationRepository.save(ws);
+                }
+            } else {
+                for (WorkstationRentalRequestItem item : items) {
+                    Workstation ws = this.workstationRepository.findById(item.getWorkstationId()).orElseThrow(() -> new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728"));
+                    this.workstationService.cancelReserve(ws, r.getId());
+                }
             }
         }
         r.setStatus(RentalRequestStatus.CANCELLED);
@@ -431,10 +471,106 @@ public class WorkstationRentalRequestService {
         }
         vo.setWorkstationNanoIds(itemVos.stream().map(RentalItemVo::getWorkstationNanoId).collect(Collectors.toList()));
         vo.setWorkstations(itemVos);
+        StudentInfo info = parseStudentInfo(r.getReason());
+        if (info != null) {
+            vo.setStudentName(info.name);
+            vo.setStudentNo(info.no);
+            vo.setGradeName(info.grade);
+            vo.setMentorName(info.mentor);
+        }
         return vo;
     }
 
-    public WorkstationRentalRequestService(WorkstationRentalRequestRepository requestRepository, WorkstationRentalRequestItemRepository itemRepository, WorkstationOccupancyHistoryRepository historyRepository, WorkstationRepository workstationRepository, LabRepository labRepository, UserIdResolver userIdResolver, MentorGroupResolver mentorGroupResolver, PermissionService permissionService, WorkstationService workstationService) {
+    @Transactional
+    public String createStudentApply(String labNanoId, String workstationNanoId, String studentName, String studentNo, String gradeName, String mentorName, Long mentorGroupId, String endMonth) {
+        // 导师组为空也允许提交(管理员后台手动确认)
+        Workstation ws = this.workstationRepository.findByNanoId(workstationNanoId);
+        if (ws == null) {
+            throw new BizException(ResultCode.RESOURCE_NOT_FOUND, "\u5de5\u4f4d\u4e0d\u5b58\u5728: " + workstationNanoId);
+        }
+        boolean hasOccupant = ws.getCurrentUserId() != null || (ws.getManualOccupantName() != null && !ws.getManualOccupantName().isBlank());
+        boolean canApply = ws.getStatus() == WorkstationStatus.IDLE || (ws.getStatus() == WorkstationStatus.PRE_RESERVED && !hasOccupant);
+        if (!canApply) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5f53\u524d\u4e0d\u53ef\u7533\u8bf7(\u5df2\u88ab\u4f7f\u7528\u6216\u4e0d\u53ef\u7528): " + ws.getCode());
+        }
+        if (ws.getStatus() == WorkstationStatus.PRE_RESERVED && !hasOccupant && this.itemRepository.countApprovedByWorkstationAndMonth(ws.getId(), YearMonth.now().toString()) > 0L) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u88ab\u8bfe\u9898\u7ec4\u6b63\u5f0f\u5206\u914d, \u4e0d\u53ef\u7533\u8bf7: " + ws.getCode());
+        }
+        List<WorkstationRentalRequestItem> exists = this.itemRepository.findByWorkstationIdIn(java.util.List.of(ws.getId()));
+        for (WorkstationRentalRequestItem it : exists) {
+            WorkstationRentalRequest rr = it.getRentalRequestId() == null ? null : this.requestRepository.findById(it.getRentalRequestId()).orElse(null);
+            if (rr != null && rr.getStatus() != null && (rr.getStatus().isPending() || rr.getStatus() == RentalRequestStatus.APPROVED)) {
+                throw new BizException(ResultCode.BAD_REQUEST, "\u8be5\u5de5\u4f4d\u5df2\u6709\u5f85\u5ba1\u6279\u6216\u5df2\u901a\u8fc7\u7684\u7533\u8bf7: " + ws.getCode());
+            }
+        }
+        RentalRequestCreateRequest r = new RentalRequestCreateRequest();
+        r.setLabNanoId(labNanoId);
+        r.setWorkstationNanoIds(List.of(workstationNanoId));
+        r.setStartMonth(YearMonth.now().toString());
+        String effEnd = endMonth;
+        if (effEnd == null || effEnd.isBlank()) {
+            effEnd = WorkstationRentalRequestService.defaultStudentEndMonth();
+        }
+        if (!effEnd.matches("\\d{4}-\\d{2}")) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u7ed3\u675f\u6708\u4efd\u683c\u5f0f\u5e94\u4e3a YYYY-MM");
+        }
+        YearMonth em = YearMonth.parse(effEnd);
+        if (em.isBefore(YearMonth.now())) {
+            throw new BizException(ResultCode.BAD_REQUEST, "\u7ed3\u675f\u6708\u4efd\u4e0d\u80fd\u65e9\u4e8e\u5f53\u524d\u6708\u4efd");
+        }
+        r.setEndMonth(effEnd);
+        r.setMentorGroupNanoId(this.mentorGroupResolver.resolveNanoId(mentorGroupId));
+        r.setReason(WorkstationRentalRequestService.buildStudentReason(studentName, studentNo, gradeName, mentorName));
+        return this.create(labNanoId, r);
+    }
+
+    private static String buildStudentReason(String studentName, String studentNo, String gradeName, String mentorName) {
+        return "\u3010\u5b66\u751f\u7533\u8bf7\u3011\u59d3\u540d:" + studentName + ";\u5b66\u53f7:" + studentNo + ";\u5e74\u7ea7:" + gradeName + ";\u5bfc\u5e08:" + mentorName;
+    }
+
+    public static StudentInfo parseStudentInfo(String reason) {
+        if (reason == null || !reason.startsWith("\u3010\u5b66\u751f\u7533\u8bf7\u3011")) {
+            return null;
+        }
+        StudentInfo info = new StudentInfo();
+        String body = reason.substring("\u3010\u5b66\u751f\u7533\u8bf7\u3011".length());
+        String[] parts = body.split(";");
+        for (String p : parts) {
+            int i = p.indexOf(58);
+            if (i < 0) {
+                continue;
+            }
+            String k = p.substring(0, i).trim();
+            String v = p.substring(i + 1).trim();
+            if ("\u59d3\u540d".equals(k)) {
+                info.name = v;
+            } else if ("\u5b66\u53f7".equals(k)) {
+                info.no = v;
+            } else if ("\u5e74\u7ea7".equals(k)) {
+                info.grade = v;
+            } else if ("\u5bfc\u5e08".equals(k)) {
+                info.mentor = v;
+            }
+        }
+        return info;
+    }
+
+    private static String defaultStudentEndMonth() {
+        YearMonth now = YearMonth.now();
+        return YearMonth.of(now.getYear() + 1, 6).toString();
+    }
+
+    public static class StudentInfo {
+        public String name;
+        public String no;
+        public String grade;
+        public String mentor;
+
+        public StudentInfo() {
+        }
+    }
+
+    public WorkstationRentalRequestService(WorkstationRentalRequestRepository requestRepository, WorkstationRentalRequestItemRepository itemRepository, WorkstationOccupancyHistoryRepository historyRepository, WorkstationRepository workstationRepository, LabRepository labRepository, UserIdResolver userIdResolver, MentorGroupResolver mentorGroupResolver, PermissionService permissionService, WorkstationService workstationService, WorkstationOccupancyHistoryService historyService) {
         this.requestRepository = requestRepository;
         this.itemRepository = itemRepository;
         this.historyRepository = historyRepository;
@@ -444,6 +580,7 @@ public class WorkstationRentalRequestService {
         this.mentorGroupResolver = mentorGroupResolver;
         this.permissionService = permissionService;
         this.workstationService = workstationService;
+        this.historyService = historyService;
     }
 
     private static LocalDateTime resolveOpenRentalEnd(WorkstationRentalRequestRepository repo, WorkstationOccupancyHistory h) {

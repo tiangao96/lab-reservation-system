@@ -23,7 +23,6 @@ public class UserVo {
     private Integer isActive;
     private LocalDateTime sysCreateDatetime;
     private String avatarUrl;
-    private Integer userType;
 
     @Generated
     public UserVo() {
@@ -137,16 +136,6 @@ public class UserVo {
     @Generated
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
-    }
-
-    @Generated
-    public Integer getUserType() {
-        return this.userType;
-    }
-
-    @Generated
-    public void setUserType(Integer userType) {
-        this.userType = userType;
     }
 
     @Generated

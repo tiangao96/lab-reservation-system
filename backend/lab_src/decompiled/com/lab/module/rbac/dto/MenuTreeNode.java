@@ -9,7 +9,6 @@ package com.lab.module.rbac.dto;
 
 import java.util.ArrayList;
 import java.util.List;
-import lombok.Generated;
 
 public class MenuTreeNode {
     private String nanoId;
@@ -19,94 +18,103 @@ public class MenuTreeNode {
     private String component;
     private String icon;
     private Integer order;
+    private String badge;
+    private String badgeType;
+    private String badgeVariants;
     private List<MenuTreeNode> children = new ArrayList();
 
-    @Generated
-    public MenuTreeNode() {
+        public MenuTreeNode() {
     }
 
-    @Generated
-    public String getNanoId() {
+        public String getNanoId() {
         return this.nanoId;
     }
 
-    @Generated
-    public String getName() {
+        public String getName() {
         return this.name;
     }
 
-    @Generated
-    public String getTitle() {
+        public String getTitle() {
         return this.title;
     }
 
-    @Generated
-    public String getPath() {
+        public String getPath() {
         return this.path;
     }
 
-    @Generated
-    public String getComponent() {
+        public String getComponent() {
         return this.component;
     }
 
-    @Generated
-    public String getIcon() {
+        public String getIcon() {
         return this.icon;
     }
 
-    @Generated
-    public Integer getOrder() {
+        public Integer getOrder() {
         return this.order;
     }
 
-    @Generated
-    public List<MenuTreeNode> getChildren() {
+    public String getBadge() {
+        return this.badge;
+    }
+
+    public String getBadgeType() {
+        return this.badgeType;
+    }
+
+    public String getBadgeVariants() {
+        return this.badgeVariants;
+    }
+
+        public List<MenuTreeNode> getChildren() {
         return this.children;
     }
 
-    @Generated
-    public void setNanoId(String nanoId) {
+        public void setNanoId(String nanoId) {
         this.nanoId = nanoId;
     }
 
-    @Generated
-    public void setName(String name) {
+        public void setName(String name) {
         this.name = name;
     }
 
-    @Generated
-    public void setTitle(String title) {
+        public void setTitle(String title) {
         this.title = title;
     }
 
-    @Generated
-    public void setPath(String path) {
+        public void setPath(String path) {
         this.path = path;
     }
 
-    @Generated
-    public void setComponent(String component) {
+        public void setComponent(String component) {
         this.component = component;
     }
 
-    @Generated
-    public void setIcon(String icon) {
+        public void setIcon(String icon) {
         this.icon = icon;
     }
 
-    @Generated
-    public void setOrder(Integer order) {
+        public void setOrder(Integer order) {
         this.order = order;
     }
 
-    @Generated
-    public void setChildren(List<MenuTreeNode> children) {
+    public void setBadge(String badge) {
+        this.badge = badge;
+    }
+
+    public void setBadgeType(String badgeType) {
+        this.badgeType = badgeType;
+    }
+
+    public void setBadgeVariants(String badgeVariants) {
+        this.badgeVariants = badgeVariants;
+    }
+
+        public void setChildren(List<MenuTreeNode> children) {
         this.children = children;
     }
 
-    @Generated
-    public boolean equals(Object o) {
+        public boolean equals(Object o) {
         if (o == this) {
             return true;
         }
@@ -157,13 +165,11 @@ public class MenuTreeNode {
         return !(this$children == null ? other$children != null : !((Object)this$children).equals(other$children));
     }
 
-    @Generated
-    protected boolean canEqual(Object other) {
+        protected boolean canEqual(Object other) {
         return other instanceof MenuTreeNode;
     }
 
-    @Generated
-    public int hashCode() {
+        public int hashCode() {
         int PRIME = 59;
         int result = 1;
         Integer $order = this.getOrder();
@@ -185,8 +191,7 @@ public class MenuTreeNode {
         return result;
     }
 
-    @Generated
-    public String toString() {
+        public String toString() {
         return "MenuTreeNode(nanoId=" + this.getNanoId() + ", name=" + this.getName() + ", title=" + this.getTitle() + ", path=" + this.getPath() + ", component=" + this.getComponent() + ", icon=" + this.getIcon() + ", order=" + this.getOrder() + ", children=" + String.valueOf(this.getChildren()) + ")";
     }
 }

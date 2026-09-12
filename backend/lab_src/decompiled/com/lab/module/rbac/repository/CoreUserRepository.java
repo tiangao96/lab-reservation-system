@@ -23,6 +23,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface CoreUserRepository
 extends JpaRepository<CoreUser, Long> {
+    public java.util.List<CoreUser> findByName(String name);
+
     public CoreUser findByUsername(String var1);
 
     public List<CoreUser> findByUsernameIn(Collection<String> var1);

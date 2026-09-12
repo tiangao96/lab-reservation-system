@@ -138,10 +138,10 @@ public class UserService {
         Long deptId = this.resolveDeptId(req.getDeptNanoId());
         Long mentorGroupId = this.resolveMentorGroupId(req.getMentorGroupNanoId());
         List roleIds = this.resolveRoleIds(req.getRoleNanoIds());
-        return this.doCreateUser(req.getUsername(), req.getPassword(), req.getName(), req.getEmail(), req.getMobile(), deptId, mentorGroupId, roleIds, req.getUserType());
+        return this.doCreateUser(req.getUsername(), req.getPassword(), req.getName(), req.getEmail(), req.getMobile(), deptId, mentorGroupId, roleIds);
     }
 
-    private String doCreateUser(String username, String password, String name, String email, String mobile, Long deptId, Long mentorGroupId, List<Long> roleIds, Integer userType) {
+    private String doCreateUser(String username, String password, String name, String email, String mobile, Long deptId, Long mentorGroupId, List<Long> roleIds) {
         CoreUser u = new CoreUser();
         u.setUsername(username);
         u.setPassword(this.passwordEncoder.encode((CharSequence)password));
@@ -150,7 +150,6 @@ public class UserService {
         u.setMobile(mobile);
         u.setDeptId(deptId);
         u.setMentorGroupId(mentorGroupId);
-        u.setUserType(userType);
         u.setIsActive(Integer.valueOf(1));
         u.setIsSuperuser(Integer.valueOf(0));
         u = (CoreUser)this.userRepository.save((Object)u);
@@ -187,9 +186,6 @@ public class UserService {
         u.setMobile(req.getMobile());
         u.setDeptId(this.resolveDeptId(req.getDeptNanoId()));
         u.setMentorGroupId(this.resolveMentorGroupId(req.getMentorGroupNanoId()));
-        if (req.getUserType() != null) {
-            u.setUserType(req.getUserType());
-        }
         if (req.getIsActive() != null) {
             u.setIsActive(req.getIsActive());
         }
@@ -315,7 +311,6 @@ public class UserService {
         vo.setName(u.getName());
         vo.setEmail(u.getEmail());
         vo.setMobile(u.getMobile());
-        vo.setUserType(u.getUserType());
         vo.setIsActive(u.getIsActive());
         vo.setSysCreateDatetime(u.getSysCreateDatetime());
         vo.setAvatarUrl(this.fileStorageService.avatarUrl(u.getAvatar()));

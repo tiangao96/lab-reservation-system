@@ -21,7 +21,6 @@ public class UserUpdateRequest {
     private String deptNanoId;
     private String mentorGroupNanoId;
     private Integer isActive;
-    private Integer userType;
 
     @Generated
     public UserUpdateRequest() {
@@ -105,16 +104,6 @@ public class UserUpdateRequest {
     @Generated
     public void setIsActive(Integer isActive) {
         this.isActive = isActive;
-    }
-
-    @Generated
-    public Integer getUserType() {
-        return this.userType;
-    }
-
-    @Generated
-    public void setUserType(Integer userType) {
-        this.userType = userType;
     }
 
     @Generated

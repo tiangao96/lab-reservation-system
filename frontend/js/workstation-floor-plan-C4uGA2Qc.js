@@ -135,3 +135,83 @@ function _try(){
 }
 setInterval(_try,700);
 }catch(_e){console.log('[MGV2-ERR]',_e&&_e.message)}})();
+/*__LABPICK_V1__*/
+;(function(){try{
+if(window.__labPick)return;window.__labPick=1;
+var AUTH=null,LABS=null,SEL=null;
+try{
+  var _sh=XMLHttpRequest.prototype.setRequestHeader;
+  XMLHttpRequest.prototype.setRequestHeader=function(k,v){try{if(String(k).toLowerCase()==='authorization'&&v)AUTH=String(v)}catch(_e){}return _sh.apply(this,arguments)};
+}catch(_e){}
+try{
+  if(window.fetch){var _of=window.fetch;window.fetch=function(){try{var o=arguments[1]||{},h=o.headers||{},a=h.Authorization||h.authorization;if(a)AUTH=String(a)}catch(_e){}return _of.apply(this,arguments)}}
+}catch(_e){}
+function _curLab(){var m=location.hash.match(/workstations\/([^?]+)/);return m?m[1]:''}
+function _anchor(){
+  var bs=document.querySelectorAll('button');
+  for(var i=0;i<bs.length;i++){
+    if((bs[i].innerText||'').replace(/\s+/g,'').indexOf('返回列表')>=0){
+      var up=bs[i];
+      while(up&&up!==document.body&&up.querySelectorAll('button').length<2)up=up.parentElement;
+      if(up&&up!==document.body&&up.parentElement)return up;
+    }
+  }
+  return null;
+}
+function _targetName(id){var r='';(LABS||[]).forEach(function(l){if(l.id===id)r=l.name});return r}
+function _titleHas(nm){
+  try{
+    if(!nm)return false;
+    var t=(document.body.innerText||'').replace(/\s+/g,'');
+    return t.indexOf(nm.replace(/\s+/g,''))>=0;
+  }catch(_e){}
+  return false;
+}
+function _mkSel(){
+  var s=document.createElement('select');
+  s.id='__labPickSel';
+  s.setAttribute('title','切换实验室房间号');
+  s.style.cssText='height:32px;border:1px solid #d1d5db;border-radius:6px;padding:0 8px;font-size:13px;background:#fff;color:#111827;outline:none;cursor:pointer;margin-right:8px;min-width:150px';
+  s.addEventListener('change',function(){
+    var v=s.value;if(!v||v===_curLab())return;
+    var nm=_targetName(v);
+    location.hash='#/lab/workstations/'+v;
+    setTimeout(function(){
+      if(!_titleHas(nm)){try{location.reload()}catch(_e){}}
+    },900);
+  });
+  return s;
+}
+function _fill(){
+  var host=_anchor();
+  if(!host)return;
+  if(SEL&&!SEL.isConnected)SEL=null;
+  if(!SEL){SEL=_mkSel();host.insertBefore(SEL,host.firstChild)}
+  if(LABS&&LABS.length){
+    var key=LABS.map(function(l){return l.id}).join(',');
+    if(SEL.getAttribute('data-k')!==key){
+      var h='<option value="">选择实验室</option>';
+      for(var i=0;i<LABS.length;i++){h+='<option value="'+LABS[i].id+'">'+LABS[i].name+'</option>'}
+      SEL.innerHTML=h;SEL.setAttribute('data-k',key);
+    }
+    var c=_curLab();
+    if(SEL.value!==c)SEL.value=c;
+  }
+}
+function _setLabs(d){
+  var arr=(d||[]).filter(function(l){return l&&l.name&&l.nanoId});
+  if(arr.length)LABS=arr.map(function(l){return{id:l.nanoId,name:l.name,code:l.code}});
+}
+function _load(){
+  if(LABS)return;
+  var done=false;
+  function ok(d){if(done)return;done=true;try{_setLabs(d)}catch(_e){}}
+  try{Promise.resolve(Ax.get('/labs')).then(function(r){ok((r&&r.data)||r)}).catch(function(_e){})}catch(_e){}
+  if(AUTH){
+    try{fetch('/api/labs',{headers:{Authorization:AUTH}}).then(function(r){return r.json()}).then(function(j){ok((j&&j.data)||j)}).catch(function(_e){})}catch(_e){}
+  }
+}
+function _tick(){try{_load();_fill()}catch(_e){}}
+setTimeout(_tick,200);setTimeout(_tick,1200);
+setInterval(_tick,700);
+}catch(e){console.log('[LABPICK-FATAL]',e&&e.message)}})();

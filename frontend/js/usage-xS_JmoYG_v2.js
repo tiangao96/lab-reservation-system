@@ -991,3 +991,62 @@ setInterval(function(){try{_hook()}catch(e){}try{_fixDom()}catch(e){}try{_fitDom
 try{_hook()}catch(e){}
 setTimeout(function(){try{_loadLabs()}catch(e){}},1500);
 }catch(_e){console.log('[ULJX-ERR]',_e&&_e.message)}})();
+/*__ULROOMAREA_V1__*/
+;(function(){try{
+  if(window.__ulRoomArea)return;window.__ulRoomArea=1;
+  var TOK=null,LABS=null;
+  try{
+    var _osh=XMLHttpRequest.prototype.setRequestHeader;
+    XMLHttpRequest.prototype.setRequestHeader=function(k,v){try{if(/^authorization$/i.test(k)&&v&&String(v).length>10)TOK=String(v);}catch(_e){}return _osh.apply(this,arguments)};
+  }catch(_e){}
+  try{
+    if(window.fetch){var _of=window.fetch;window.fetch=function(){try{var a=arguments[1];if(a&&a.headers){var h=a.headers;var v=h.get?h.get('Authorization'):(h.Authorization||h.authorization);if(v&&String(v).length>10)TOK=String(v);}}catch(_e){}return _of.apply(this,arguments)};}
+  }catch(_e){}
+  function _num(a){if(a==null)return null;var n=Number(a);return isNaN(n)?null:n;}
+  function _fmt(n){return String(Math.round(n*100)/100);}
+  function _load(){
+    if(LABS)return;
+    try{
+      fetch('/api/labs',{headers:TOK?{Authorization:TOK}:{}}).then(function(r){return r.json()}).then(function(j){
+        if(j&&j.data&&j.data.length){LABS=j.data.map(function(l){return {name:l.name,code:l.code,area:_num(l.area)}});_schedule();}
+      }).catch(function(){});
+    }catch(_e){}
+  }
+  function _cur(){var s=document.querySelector('select.__ul-lab');return s?String(s.value||''):'';}
+  function _set(el,txt){try{if(el&&(el.textContent||'')!==txt)el.textContent=txt;}catch(_e){}}
+  function _apply(){
+    try{
+      if(!LABS||!LABS.length)return;
+      var v=_cur(),label,val;
+      if(v){
+        var hit=null;for(var i=0;i<LABS.length;i++){if(LABS[i].name===v){hit=LABS[i];break;}}
+        if(!hit)return;
+        label='房间总面积：';
+        val=(hit.area==null)?'—':_fmt(hit.area)+' m²';
+      }else{
+        var sum=0,n=0;for(var j=0;j<LABS.length;j++){if(LABS[j].area!=null){sum+=LABS[j].area;n++;}}
+        if(!n)return;
+        label='房间总面积（'+n+' 个实验室合计）：';
+        val=_fmt(sum)+' m²';
+      }
+      var scope=document.querySelector('div.mt-4.flex.flex-wrap')||document.body;
+      var spans=scope.querySelectorAll('span');
+      for(var k=0;k<spans.length;k++){
+        var el=spans[k];
+        if(el.children.length===0&&/(总计使用面积|房间总面积)/.test(el.textContent||'')){
+          var sib=el.parentElement?el.parentElement.querySelector('span.text-lg'):null;
+          _set(el,label);
+          _set(sib,val);
+          break;
+        }
+      }
+    }catch(_e){}
+  }
+  var _timer=null;
+  function _schedule(){ if(_timer)return; _timer=setTimeout(function(){_timer=null;_apply();},200); }
+  function _tick(){_load();_apply();}
+  try{new MutationObserver(function(){_schedule();}).observe(document.body,{childList:true,subtree:true,characterData:true});}catch(_e){}
+  try{document.addEventListener('change',function(e){try{if(e&&e.target&&e.target.classList&&e.target.classList.contains('__ul-lab'))setTimeout(_tick,60);}catch(_e){}},true);}catch(_e){}
+  setTimeout(_tick,300);setTimeout(_tick,1200);setTimeout(_tick,3000);
+  setInterval(_tick,1200);
+}catch(e){console.log('[ULROOMAREA-FATAL]',e&&e.message)}})();

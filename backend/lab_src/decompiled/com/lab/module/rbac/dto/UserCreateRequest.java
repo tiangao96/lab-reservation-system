@@ -23,7 +23,6 @@ public class UserCreateRequest {
     private String deptNanoId;
     private String mentorGroupNanoId;
     private List<String> roleNanoIds;
-    private Integer userType;
 
     @Generated
     public UserCreateRequest() {
@@ -107,16 +106,6 @@ public class UserCreateRequest {
     @Generated
     public void setRoleNanoIds(List<String> roleNanoIds) {
         this.roleNanoIds = roleNanoIds;
-    }
-
-    @Generated
-    public Integer getUserType() {
-        return this.userType;
-    }
-
-    @Generated
-    public void setUserType(Integer userType) {
-        this.userType = userType;
     }
 
     @Generated

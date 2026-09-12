@@ -9,3 +9,7 @@ Thumbs.db
 # 本地环境
 .env
 application-local.yml
+# 运行期配置与密钥 (由 app.env.example 派变, 不入库)
+**/config/app.env
+**/config/rsa.env
+*.pem

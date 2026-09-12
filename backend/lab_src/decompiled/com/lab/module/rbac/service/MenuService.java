@@ -11,7 +11,6 @@
  *  com.lab.module.rbac.repository.CoreMenuRepository
  *  com.lab.module.rbac.repository.CoreRoleMenuRepository
  *  com.lab.module.rbac.service.MenuService
- *  lombok.Generated
  *  org.springframework.data.domain.Sort
  *  org.springframework.data.domain.Sort$Direction
  *  org.springframework.stereotype.Service
@@ -27,12 +26,14 @@ import com.lab.module.rbac.dto.MenuVo;
 import com.lab.module.rbac.entity.CoreMenu;
 import com.lab.module.rbac.repository.CoreMenuRepository;
 import com.lab.module.rbac.repository.CoreRoleMenuRepository;
+import com.lab.module.workstation.entity.RentalRequestStatus;
+import com.lab.module.workstation.entity.WorkstationRentalRequest;
+import com.lab.module.workstation.repository.WorkstationRentalRequestRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import lombok.Generated;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,16 +42,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class MenuService {
     private final CoreRoleMenuRepository roleMenuRepository;
     private final CoreMenuRepository menuRepository;
+    private final WorkstationRentalRequestRepository rentalRequestRepository;
 
     public List<MenuTreeNode> currentUserMenuTree(Long userId) {
-        List menuIds = this.roleMenuRepository.findMenuIdsByUserId(userId);
+        List<Long> menuIds = this.roleMenuRepository.findMenuIdsByUserId(userId);
         if (menuIds.isEmpty()) {
             return List.of();
         }
-        List menus = this.menuRepository.findAllById((Iterable)menuIds);
+        List<CoreMenu> menus = this.menuRepository.findAllById(menuIds);
         LinkedHashMap<Long, MenuTreeNode> nodeMap = new LinkedHashMap<Long, MenuTreeNode>();
-        for (Object m : menus) {
-            nodeMap.put(m.getId(), this.toNode((CoreMenu)m));
+        for (CoreMenu m : menus) {
+            nodeMap.put(m.getId(), this.toNode(m));
         }
         ArrayList<MenuTreeNode> roots = new ArrayList<MenuTreeNode>();
         for (CoreMenu m : menus) {
@@ -83,11 +85,24 @@ public class MenuService {
         n.setComponent(m.getComponent());
         n.setIcon(m.getIcon());
         n.setOrder(m.getOrder());
+        this.applyBadge(n, m);
         return n;
     }
 
+    private void applyBadge(MenuTreeNode n, CoreMenu m) {
+        if ("/lab/rental".equals(m.getPath())) {
+            List<WorkstationRentalRequest> pending = this.rentalRequestRepository.findWithFilters(RentalRequestStatus.PENDING, null, null);
+            int count = pending == null ? 0 : pending.size();
+            if (count > 0) {
+                n.setBadge(String.valueOf(count));
+                n.setBadgeType("number");
+                n.setBadgeVariants("destructive");
+            }
+        }
+    }
+
     public List<MenuVo> list() {
-        List menus = this.menuRepository.findAll(Sort.by((Sort.Direction)Sort.Direction.ASC, (String[])new String[]{"order"}).and(Sort.by((Sort.Direction)Sort.Direction.ASC, (String[])new String[]{"id"})));
+        List<CoreMenu> menus = this.menuRepository.findAll(Sort.by(Sort.Direction.ASC, new String[]{"order"}).and(Sort.by(Sort.Direction.ASC, new String[]{"id"})));
         return this.buildTree(menus);
     }
 
@@ -95,7 +110,7 @@ public class MenuService {
         CoreMenu m = this.requireMenu(nanoId);
         MenuVo v = this.toVo(m);
         if (m.getParentId() != null) {
-            this.menuRepository.findById((Object)m.getParentId()).ifPresent(p -> v.setParentNanoId(p.getNanoId()));
+            this.menuRepository.findById(m.getParentId()).ifPresent(p -> v.setParentNanoId(p.getNanoId()));
         }
         return v;
     }
@@ -108,7 +123,7 @@ public class MenuService {
         m.setParentId(this.resolveParentId(req.getParentNanoId()));
         m.setIsSystem(Integer.valueOf(req.getIsSystem() != null ? req.getIsSystem() : 0));
         this.applyFields(m, req);
-        m = (CoreMenu)this.menuRepository.save((Object)m);
+        m = this.menuRepository.save(m);
         return m.getNanoId();
     }
 
@@ -131,7 +146,7 @@ public class MenuService {
             m.setIsSystem(req.getIsSystem());
         }
         this.applyFields(m, req);
-        this.menuRepository.save((Object)m);
+        this.menuRepository.save(m);
     }
 
     @Transactional
@@ -145,7 +160,7 @@ public class MenuService {
         }
         this.roleMenuRepository.deleteByMenuId(m.getId());
         m.setIsDeleted(Integer.valueOf(1));
-        this.menuRepository.save((Object)m);
+        this.menuRepository.save(m);
     }
 
     private CoreMenu requireMenu(String nanoId) {
@@ -174,7 +189,7 @@ public class MenuService {
             if (cur.equals(rootId)) {
                 return true;
             }
-            CoreMenu m = this.menuRepository.findById((Object)cur).orElse(null);
+            CoreMenu m = this.menuRepository.findById(cur).orElse(null);
             if (m == null) {
                 return false;
             }
@@ -278,10 +293,10 @@ public class MenuService {
         return v;
     }
 
-    @Generated
-    public MenuService(CoreRoleMenuRepository roleMenuRepository, CoreMenuRepository menuRepository) {
+        public MenuService(CoreRoleMenuRepository roleMenuRepository, CoreMenuRepository menuRepository, WorkstationRentalRequestRepository rentalRequestRepository) {
         this.roleMenuRepository = roleMenuRepository;
         this.menuRepository = menuRepository;
+        this.rentalRequestRepository = rentalRequestRepository;
     }
 }
 
